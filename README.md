@@ -30,3 +30,7 @@ In Firebase Console:
 3. Publish the rules from `firestore.rules`.
 
 Without these settings, the app automatically falls back to browser `localStorage`.
+
+Google Drive sync uses the shared folder configured in the app:
+`https://drive.google.com/drive/folders/1R1UB_CIQy_XHRV3mGCmtP36bx4jD4-jf`
+The Google account used in the Drive modal must have access to that folder.

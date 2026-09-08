@@ -19,12 +19,29 @@ export interface DriveFileInfo {
   size?: string;
 }
 
-const FOLDER_NAME = 'OCTOQUIZ-Data';
+const SHARED_FOLDER_ID = '1R1UB_CIQy_XHRV3mGCmtP36bx4jD4-jf';
 
 /**
  * Find or create the OCTOQUIZ-Data folder in user's Google Drive
  */
 export async function getOrCreateOctoquizFolder(accessToken: string): Promise<{ id: string; webViewLink?: string }> {
+  const folderRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${SHARED_FOLDER_ID}?fields=id,name,mimeType,webViewLink`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+
+  if (folderRes.ok) {
+    const folderData = await folderRes.json();
+    if (folderData.mimeType === 'application/vnd.google-apps.folder') {
+      return {
+        id: folderData.id,
+        webViewLink: folderData.webViewLink || `https://drive.google.com/drive/folders/${SHARED_FOLDER_ID}`,
+      };
+    }
+  }
+
+  // Fall back to the old named-folder behavior when the shared folder is unavailable.
+  const FOLDER_NAME = 'OCTOQUIZ-Data';
   // 1. Search for existing folder
   const query = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name,webViewLink)`;

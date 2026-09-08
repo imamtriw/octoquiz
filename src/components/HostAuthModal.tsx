@@ -15,7 +15,7 @@ import {
   Mail,
   UserCheck
 } from 'lucide-react';
-import { signInWithGoogle, logoutGoogle, GoogleUserProfile } from '../utils/googleAuth';
+import { logoutGoogle, GoogleUserProfile } from '../utils/googleAuth';
 import { sound } from '../utils/audio';
 
 interface HostAuthModalProps {
@@ -48,7 +48,6 @@ export const HostAuthModal: React.FC<HostAuthModalProps> = ({
   const [enteredPassword, setEnteredPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isSigningInGoogle, setIsSigningInGoogle] = useState(false);
 
   // Change password sub-mode
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -69,37 +68,7 @@ export const HostAuthModal: React.FC<HostAuthModalProps> = ({
       setEnteredPassword('');
     } else {
       sound.playIncorrect();
-      setErrorMessage('Password Host salah! Silakan coba lagi atau masuk dengan Google.');
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsSigningInGoogle(true);
-    setErrorMessage('');
-    try {
-      const { user } = await signInWithGoogle();
-      sound.playFanfare();
-      const profile: GoogleUserProfile = {
-        email: user.email,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-        uid: user.uid,
-      };
-      onGoogleSignInSuccess(profile);
-      onUnlockHost();
-    } catch (err: any) {
-      console.error('Sign in error:', err);
-      if (err?.code !== 'auth/popup-closed-by-user') {
-        const messageByCode: Record<string, string> = {
-          'auth/popup-blocked': 'Popup Google diblokir browser. Izinkan popup untuk localhost lalu coba lagi.',
-          'auth/unauthorized-domain': `Domain ${window.location.hostname} belum diizinkan Firebase. Tambahkan domain ini pada Authentication > Settings > Authorized domains.`,
-          'auth/operation-not-allowed': 'Login Google belum diaktifkan di Firebase Authentication.',
-          'auth/network-request-failed': 'Koneksi ke Google gagal. Periksa koneksi internet lalu coba lagi.',
-        };
-        setErrorMessage(messageByCode[err?.code] || 'Login Google gagal diproses. Pastikan popup diizinkan lalu coba lagi.');
-      }
-    } finally {
-      setIsSigningInGoogle(false);
+      setErrorMessage('Password Host salah! Silakan coba lagi.');
     }
   };
 
@@ -325,39 +294,7 @@ export const HostAuthModal: React.FC<HostAuthModalProps> = ({
           /* STATE 2: HOST IS LOCKED - REQUIRES PASSWORD OR GOOGLE */
           <div className="space-y-4">
             
-            {/* Option A: Google Sign In Button (Host ID with Google Email) */}
-            <div>
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={isSigningInGoogle}
-                className="w-full py-3 px-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
-              >
-                {/* Official Google G Logo SVG */}
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48">
-                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                  <path fill="none" d="M0 0h48v48H0z"/>
-                </svg>
-                <span>{isSigningInGoogle ? 'Menghubungkan ke Google...' : 'Masuk dengan Google (ID Email Guru)'}</span>
-              </button>
-              <p className="text-[10px] text-center text-slate-400 mt-1.5">
-                Menggunakan ID Email Google & sinkronisasi otomatis ke Google Drive
-              </p>
-            </div>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-2">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-                ATAU DENGAN PASSWORD HOST
-              </span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            {/* Option B: Enter Host Password Form */}
+            {/* Enter Host Password Form */}
             <form onSubmit={handlePasswordSubmit} className="space-y-3">
               <div>
                 <div className="flex items-center justify-between mb-1.5">

@@ -38,6 +38,7 @@ interface AdminQuestionManagerProps {
   onDeleteQuizPackage: (id: string) => void;
   onPlayQuizSession: (pkg: QuizPackage, newClass: string, newCode: string) => void;
   onResetDefaultQuestions: () => void;
+  onSaveToDrive?: () => void;
 }
 
 export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
@@ -47,6 +48,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
   onDeleteQuizPackage,
   onPlayQuizSession,
   onResetDefaultQuestions,
+  onSaveToDrive,
 }) => {
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
     activeSession.quizId || (quizPackages[0]?.id ?? '')
@@ -341,6 +343,21 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
             <FolderPlus className="w-4 h-4" />
             <span>+ Buat Paket Kuis Baru</span>
           </button>
+
+          {onSaveToDrive && (
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick();
+                onSaveToDrive();
+              }}
+              className="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-400/30 transition-colors flex items-center gap-1.5"
+              title="Simpan paket soal dan kelompok ke Google Drive"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Simpan Soal ke Drive</span>
+            </button>
+          )}
 
           <button
             onClick={onResetDefaultQuestions}

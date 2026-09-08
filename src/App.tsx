@@ -8,6 +8,7 @@ import { AdminDisplay } from './components/AdminDisplay';
 import { AdminQuestionManager } from './components/AdminQuestionManager';
 import { AdminResults } from './components/AdminResults';
 import { HostAuthModal } from './components/HostAuthModal';
+import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { 
   DEFAULT_QUESTIONS, 
   SAMPLE_SIMULATED_STUDENTS, 
@@ -97,6 +98,8 @@ export default function App() {
   const [isHostAuthModalOpen, setIsHostAuthModalOpen] = useState(false);
   const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
   const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(null);
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [hostPassword, setHostPassword] = useState(() => {
     return localStorage.getItem(STORAGE_KEYS.HOST_PASSWORD) || 'dosenikn1234';
   });
@@ -610,6 +613,9 @@ export default function App() {
         onOpenHostAuthModal={() => setIsHostAuthModalOpen(true)}
         googleUser={googleUser}
         enteredStudentCode={currentStudentData?.quizCode || null}
+        onOpenDriveModal={() => setIsDriveModalOpen(true)}
+        isDriveConnected={Boolean(googleUser)}
+        lastSyncTime={lastSyncTime}
       />
 
       {/* Main Dynamic View Content */}
@@ -679,6 +685,7 @@ export default function App() {
             onDeleteQuizPackage={handleDeleteQuizPackage}
             onPlayQuizSession={handlePlayQuizSession}
             onResetDefaultQuestions={handleResetDefaultQuestions}
+            onSaveToDrive={() => setIsDriveModalOpen(true)}
           />
         )}
 
@@ -712,6 +719,19 @@ export default function App() {
         googleUser={googleUser}
         onGoogleSignInSuccess={setGoogleUser}
         onGoogleSignOut={() => setGoogleUser(null)}
+      />
+
+      <GoogleDriveModal
+        isOpen={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
+        googleUser={googleUser}
+        onGoogleSignInSuccess={setGoogleUser}
+        quizPackages={quizPackages}
+        students={students}
+        activeSession={activeSession}
+        onRestorePackages={setQuizPackages}
+        lastSyncTime={lastSyncTime}
+        onUpdateLastSyncTime={setLastSyncTime}
       />
 
       {/* Footer */}

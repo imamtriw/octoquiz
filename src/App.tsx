@@ -27,6 +27,7 @@ import { GoogleUserProfile } from './utils/googleAuth';
 import { sound } from './utils/audio';
 import { downloadSingleFileHTML } from './utils/singleHtmlGenerator';
 import { readJoinSessionParam } from './utils/joinSession';
+import { loadCloudQuizState, saveCloudQuizState } from './utils/cloudStorage';
 
 const STORAGE_KEYS = {
   PACKAGES: 'octoquiz_packages_v1',
@@ -103,6 +104,26 @@ export default function App() {
   // Currently active player session
   const [currentStudentData, setCurrentStudentData] = useState<StudentRegistrationData | null>(null);
   const [completedStudentResult, setCompletedStudentResult] = useState<StudentResult | null>(null);
+  const [cloudReady, setCloudReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadCloudQuizState()
+      .then((cloudState) => {
+        if (cancelled) return;
+        if (!sharedJoinSession && cloudState?.quizPackages?.length) setQuizPackages(cloudState.quizPackages);
+        if (!sharedJoinSession && cloudState?.activeSession?.quizCode) setActiveSession(cloudState.activeSession);
+        if (cloudState?.students) setStudents(cloudState.students);
+      })
+      .catch((error) => {
+        console.warn('Cloud storage belum aktif; memakai penyimpanan lokal.', error);
+      })
+      .finally(() => {
+        if (!cancelled) setCloudReady(true);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.HOST_PASSWORD, hostPassword);
@@ -147,6 +168,16 @@ export default function App() {
       // ignore
     }
   }, [students]);
+
+  useEffect(() => {
+    if (!cloudReady) return;
+    const timeoutId = window.setTimeout(() => {
+      saveCloudQuizState({ quizPackages, activeSession, students }).catch((error) => {
+        console.warn('Gagal menyimpan data ke Cloud Firestore.', error);
+      });
+    }, 500);
+    return () => window.clearTimeout(timeoutId);
+  }, [cloudReady, quizPackages, activeSession, students]);
 
   // Real-time Cross-tab Sync (via BroadcastChannel & Storage Event)
   useEffect(() => {

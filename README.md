@@ -18,3 +18,15 @@ View your app in AI Studio: https://ai.studio/apps/7a4af020-666e-4ebe-9d0d-cdc28
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Free Cloud Storage
+
+The app can sync quiz packages, groups, sessions, and student results with Firebase Firestore on the free Spark plan.
+
+In Firebase Console:
+
+1. Create/enable a Firestore Database.
+2. Enable Authentication > Sign-in method > Anonymous.
+3. Publish the rules from `firestore.rules`.
+
+Without these settings, the app automatically falls back to browser `localStorage`.

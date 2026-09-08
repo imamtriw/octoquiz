@@ -131,7 +131,7 @@ export const HostAuthModal: React.FC<HostAuthModalProps> = ({
           <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
             {isHostAuthenticated 
               ? 'Panel host terbuka. Anda memiliki hak akses penuh untuk mengelola kuis, proyektor, dan nilai.'
-              : 'Masukkan password host atau masuk dengan akun Google (ID Email) Anda.'}
+              : 'Masukkan password host untuk membuka panel pengajar.'}
           </p>
         </div>
 
@@ -291,7 +291,7 @@ export const HostAuthModal: React.FC<HostAuthModalProps> = ({
 
           </div>
         ) : (
-          /* STATE 2: HOST IS LOCKED - REQUIRES PASSWORD OR GOOGLE */
+          /* STATE 2: HOST IS LOCKED - REQUIRES PASSWORD */
           <div className="space-y-4">
             
             {/* Enter Host Password Form */}

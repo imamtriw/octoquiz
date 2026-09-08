@@ -92,7 +92,7 @@ export const HostAuthModal: React.FC<HostAuthModalProps> = ({
       if (err?.code !== 'auth/popup-closed-by-user') {
         const messageByCode: Record<string, string> = {
           'auth/popup-blocked': 'Popup Google diblokir browser. Izinkan popup untuk localhost lalu coba lagi.',
-          'auth/unauthorized-domain': 'Domain aplikasi belum diizinkan Firebase. Tambahkan localhost pada Authorized domains.',
+          'auth/unauthorized-domain': `Domain ${window.location.hostname} belum diizinkan Firebase. Tambahkan domain ini pada Authentication > Settings > Authorized domains.`,
           'auth/operation-not-allowed': 'Login Google belum diaktifkan di Firebase Authentication.',
           'auth/network-request-failed': 'Koneksi ke Google gagal. Periksa koneksi internet lalu coba lagi.',
         };

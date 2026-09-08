@@ -31,7 +31,7 @@ const STORAGE_KEYS = {
   PACKAGES: 'octoquiz_packages_v1',
   ACTIVE_SESSION: 'octoquiz_active_session_v1',
   STUDENTS: 'octoquiz_students_v1',
-  HOST_PASSWORD: 'octoquiz_host_password_v2',
+  HOST_PASSWORD: 'octoquiz_host_password_v3',
 };
 
 export default function App() {
@@ -92,7 +92,7 @@ export default function App() {
   const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
   const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(null);
   const [hostPassword, setHostPassword] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.HOST_PASSWORD) || 'guru123';
+    return localStorage.getItem(STORAGE_KEYS.HOST_PASSWORD) || 'dosenikn1234';
   });
 
   // Currently active player session

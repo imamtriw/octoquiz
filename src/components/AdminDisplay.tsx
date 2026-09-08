@@ -12,7 +12,6 @@ import {
   Sparkles,
   Layers,
   Waves,
-  QrCode,
   Share2,
   Copy,
   Link2,
@@ -33,7 +32,6 @@ import {
   MusicTrackId
 } from '../types';
 import { sound } from '../utils/audio';
-import { QRCodeCanvas } from 'qrcode.react';
 import { createJoinSessionParam } from '../utils/joinSession';
 
 interface AdminDisplayProps {
@@ -84,9 +82,6 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
     updatedAt: Date.now(),
   });
   const joinLink = `${window.location.origin}${window.location.pathname}?role=student&code=${encodeURIComponent(quizCode)}&session=${joinSessionParam}`;
-  const shortJoinLink = `${window.location.origin}${window.location.pathname}?role=student&code=${encodeURIComponent(quizCode)}`;
-  const qrPayloadTooLarge = joinSessionParam.length > 1800;
-  const qrLink = qrPayloadTooLarge ? shortJoinLink : joinLink;
 
   // Filter students for the current active quiz code (or show all if same)
   const currentStudents = useMemo(() => {
@@ -267,8 +262,8 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
               Buka OCTOQUIZ pada perangkat Anda, pilih karakter laut, dan masukkan Kode Kuis di bawah untuk bergabung!
             </p>
 
-            {/* Join options: manual code, QR scan, and a copyable quick link */}
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] items-start gap-3 my-3">
+            {/* Join options: manual code and a copyable quick link */}
+            <div className="max-w-4xl mx-auto w-full my-3">
               <div className="flex h-full flex-col gap-3 justify-start">
                 <div 
                   onClick={handleCopyCode}
@@ -314,9 +309,7 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
                     </div>
                     {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
                       <p className="mt-1 text-[10px] text-amber-300/80">
-                            {qrPayloadTooLarge
-                              ? 'Paket soal besar: QR memakai kode kuis. Gunakan link lengkap untuk membawa paket custom.'
-                              : 'Gunakan alamat Network/LAN untuk scan dari HP.'}
+                        Gunakan alamat Network/LAN untuk membuka link dari HP.
                       </p>
                     )}
                   </div>
@@ -347,28 +340,6 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
                 </div>
               </div>
 
-              <div className="w-full max-w-[340px] justify-self-center flex flex-col items-center justify-center gap-2 text-slate-950">
-                <div className="w-[min(82vw,320px)] aspect-square p-3 rounded-2xl bg-white border-2 border-white shadow-xl shadow-cyan-500/20">
-                  <QRCodeCanvas
-                    value={qrLink}
-                    size={292}
-                    level="M"
-                    includeMargin
-                    bgColor="#ffffff"
-                    fgColor="#07111f"
-                    className="w-full h-full"
-                  />
-                </div>
-                <div className="text-center min-w-0">
-                  <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider text-cyan-200">
-                    <QrCode className="w-4 h-4" />
-                    <span>Scan Untuk Bergabung</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    Kode <span className="font-bold text-cyan-300">{quizCode}</span> terisi otomatis.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {copiedCode && (

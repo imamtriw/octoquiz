@@ -1,0 +1,7 @@
+{
+  "name": "OCTOQUIZ",
+  "description": "Platform kuis interaktif kelas bertema laut dengan logo gurita, kode sesi kuis, live display kelas responsif, avatar hewan akuatik, dan bank soal multi-kuis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

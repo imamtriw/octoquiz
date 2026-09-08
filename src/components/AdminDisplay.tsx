@@ -34,6 +34,7 @@ import {
 } from '../types';
 import { sound } from '../utils/audio';
 import { QRCodeCanvas } from 'qrcode.react';
+import { createJoinSessionParam } from '../utils/joinSession';
 
 interface AdminDisplayProps {
   questions: Question[];
@@ -73,7 +74,16 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const quizCode = activeSession?.quizCode || 'OCTO-801';
-  const joinLink = `${window.location.origin}${window.location.pathname}?role=student&code=${encodeURIComponent(quizCode)}`;
+  const joinSessionParam = createJoinSessionParam(activeSession, {
+    id: activeSession.quizId,
+    title: activeSession.title,
+    targetClass: activeSession.targetClass,
+    questions,
+    customTeams: activeSession.customTeams || [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  const joinLink = `${window.location.origin}${window.location.pathname}?role=student&code=${encodeURIComponent(quizCode)}&session=${joinSessionParam}`;
 
   // Filter students for the current active quiz code (or show all if same)
   const currentStudents = useMemo(() => {

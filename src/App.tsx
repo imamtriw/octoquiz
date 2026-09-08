@@ -26,6 +26,7 @@ import {
 import { GoogleUserProfile } from './utils/googleAuth';
 import { sound } from './utils/audio';
 import { downloadSingleFileHTML } from './utils/singleHtmlGenerator';
+import { readJoinSessionParam } from './utils/joinSession';
 
 const STORAGE_KEYS = {
   PACKAGES: 'octoquiz_packages_v1',
@@ -35,8 +36,11 @@ const STORAGE_KEYS = {
 };
 
 export default function App() {
+  const sharedJoinSession = useMemo(() => readJoinSessionParam(), []);
+
   // Load Quiz Packages (Bank Soal)
   const [quizPackages, setQuizPackages] = useState<QuizPackage[]>(() => {
+    if (sharedJoinSession?.package) return [sharedJoinSession.package];
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PACKAGES);
       if (saved) {
@@ -51,6 +55,7 @@ export default function App() {
 
   // Load Active Quiz Session
   const [activeSession, setActiveSession] = useState<ActiveQuizSession>(() => {
+    if (sharedJoinSession?.session) return sharedJoinSession.session;
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSION);
       if (saved) {

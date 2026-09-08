@@ -84,6 +84,9 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
     updatedAt: Date.now(),
   });
   const joinLink = `${window.location.origin}${window.location.pathname}?role=student&code=${encodeURIComponent(quizCode)}&session=${joinSessionParam}`;
+  const shortJoinLink = `${window.location.origin}${window.location.pathname}?role=student&code=${encodeURIComponent(quizCode)}`;
+  const qrPayloadTooLarge = joinSessionParam.length > 1800;
+  const qrLink = qrPayloadTooLarge ? shortJoinLink : joinLink;
 
   // Filter students for the current active quiz code (or show all if same)
   const currentStudents = useMemo(() => {
@@ -311,7 +314,9 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
                     </div>
                     {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
                       <p className="mt-1 text-[10px] text-amber-300/80">
-                        Gunakan alamat Network/LAN untuk scan dari HP.
+                            {qrPayloadTooLarge
+                              ? 'Paket soal besar: QR memakai kode kuis. Gunakan link lengkap untuk membawa paket custom.'
+                              : 'Gunakan alamat Network/LAN untuk scan dari HP.'}
                       </p>
                     )}
                   </div>
@@ -345,7 +350,7 @@ export const AdminDisplay: React.FC<AdminDisplayProps> = ({
               <div className="w-full max-w-[340px] justify-self-center flex flex-col items-center justify-center gap-2 text-slate-950">
                 <div className="w-[min(82vw,320px)] aspect-square p-3 rounded-2xl bg-white border-2 border-white shadow-xl shadow-cyan-500/20">
                   <QRCodeCanvas
-                    value={joinLink}
+                    value={qrLink}
                     size={292}
                     level="M"
                     includeMargin

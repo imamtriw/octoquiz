@@ -229,28 +229,28 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
   // Option Styling configurations
   const OPTION_STYLES = {
     A: {
-      base: 'bg-[#ff4d6d]/15 border-[#ff4d6d]/40 text-[#ff4d6d]',
+      base: 'bg-[#3b1221]/95 border-[#ff4d6d]/55 text-[#ff4d6d]',
       badge: 'bg-[#ff4d6d] text-white',
-      hover: 'hover:bg-[#ff4d6d]/25 hover:border-[#ff4d6d]',
-      selected: 'ring-4 ring-[#ff4d6d] bg-[#ff4d6d]/30',
+      hover: 'hover:bg-[#5b1830] hover:border-[#ff4d6d]',
+      selected: 'ring-4 ring-[#ff4d6d] bg-[#7f1d3d]',
     },
     B: {
-      base: 'bg-[#00d2ff]/15 border-[#00d2ff]/40 text-[#00d2ff]',
+      base: 'bg-[#082d3a]/95 border-[#00d2ff]/55 text-[#00d2ff]',
       badge: 'bg-[#00d2ff] text-[#121218]',
-      hover: 'hover:bg-[#00d2ff]/25 hover:border-[#00d2ff]',
-      selected: 'ring-4 ring-[#00d2ff] bg-[#00d2ff]/30',
+      hover: 'hover:bg-[#0b5266] hover:border-[#00d2ff]',
+      selected: 'ring-4 ring-[#00d2ff] bg-[#0e7490]',
     },
     C: {
-      base: 'bg-[#ffc107]/15 border-[#ffc107]/40 text-[#ffc107]',
+      base: 'bg-[#3d3210]/95 border-[#ffc107]/55 text-[#ffc107]',
       badge: 'bg-[#ffc107] text-[#121218]',
-      hover: 'hover:bg-[#ffc107]/25 hover:border-[#ffc107]',
-      selected: 'ring-4 ring-[#ffc107] bg-[#ffc107]/30',
+      hover: 'hover:bg-[#66530d] hover:border-[#ffc107]',
+      selected: 'ring-4 ring-[#ffc107] bg-[#92740b]',
     },
     D: {
-      base: 'bg-[#00e6a8]/15 border-[#00e6a8]/40 text-[#00e6a8]',
+      base: 'bg-[#073d34]/95 border-[#00e6a8]/55 text-[#00e6a8]',
       badge: 'bg-[#00e6a8] text-[#121218]',
-      hover: 'hover:bg-[#00e6a8]/25 hover:border-[#00e6a8]',
-      selected: 'ring-4 ring-[#00e6a8] bg-[#00e6a8]/30',
+      hover: 'hover:bg-[#0b6655] hover:border-[#00e6a8]',
+      selected: 'ring-4 ring-[#00e6a8] bg-[#0d806a]',
     },
   };
 

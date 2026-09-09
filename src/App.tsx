@@ -742,6 +742,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span>🐙 OCTOQUIZ • Kuis Interaktif Kelas Dark Theme</span>
             <span className="text-cyan-400 font-mono font-bold">[{activeSession?.quizCode || 'OCTO-801'}]</span>
+            <span className="text-slate-400">Developer: itw</span>
           </div>
           <div className="flex items-center gap-4 text-slate-400">
             <span className="text-[11px] text-cyan-300">Live Cross-Tab Sync</span>

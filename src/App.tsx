@@ -111,9 +111,11 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    let cloudLoaded = false;
     loadCloudQuizState()
       .then((cloudState) => {
         if (cancelled) return;
+        cloudLoaded = true;
         if (!sharedJoinSession && cloudState?.quizPackages?.length) setQuizPackages(cloudState.quizPackages);
         if (!sharedJoinSession && cloudState?.activeSession?.quizCode) setActiveSession(cloudState.activeSession);
         if (cloudState?.students) setStudents(cloudState.students);
@@ -122,7 +124,7 @@ export default function App() {
         console.warn('Cloud storage belum aktif; memakai penyimpanan lokal.', error);
       })
       .finally(() => {
-        if (!cancelled) setCloudReady(true);
+        if (!cancelled) setCloudReady(cloudLoaded);
       });
 
     return () => { cancelled = true; };

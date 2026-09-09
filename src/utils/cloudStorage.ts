@@ -7,6 +7,20 @@ import { ActiveQuizSession, QuizPackage, StudentResult } from '../types';
 const db = getFirestore(getApp());
 const stateRef = doc(db, 'octoquiz', 'shared-state');
 
+function omitUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map(omitUndefined) as T;
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, entry]) => entry !== undefined)
+        .map(([key, entry]) => [key, omitUndefined(entry)]),
+    ) as T;
+  }
+  return value;
+}
+
 export interface CloudQuizState {
   quizPackages?: QuizPackage[];
   activeSession?: ActiveQuizSession;
@@ -20,8 +34,8 @@ export async function loadCloudQuizState(): Promise<CloudQuizState | null> {
 }
 
 export async function saveCloudQuizState(state: CloudQuizState): Promise<void> {
-  await setDoc(stateRef, {
+  await setDoc(stateRef, omitUndefined({
     ...state,
     updatedAt: Date.now(),
-  }, { merge: true });
+  }), { merge: true });
 }

@@ -1,11 +1,11 @@
 {
-  "projectId": "gen-lang-client-0499683274",
-  "appId": "1:270395426129:web:330d35f802d9514b31ff70",
-  "apiKey": "AIzaSyB9syU_LGxSGy4Vw8AHrz5nzyHTNmi0FGM",
-  "authDomain": "gen-lang-client-0499683274.firebaseapp.com",
-  "storageBucket": "gen-lang-client-0499683274.firebasestorage.app",
-  "messagingSenderId": "270395426129",
-  "measurementId": "",
-  "oAuthClientId": "270395426129-ctccj0gs7e7ipemlp3ouudm6cvv3i0km.apps.googleusercontent.com",
+  "projectId": "octoquiz-bda0e",
+  "appId": "1:16089099724:web:1fd1740f1ccf900cec4169",
+  "apiKey": "AIzaSyAj8-zL8hLmW0fqpksAVWB5VNt0Ew2a8XI",
+  "authDomain": "octoquiz-bda0e.firebaseapp.com",
+  "storageBucket": "octoquiz-bda0e.firebasestorage.app",
+  "messagingSenderId": "16089099724",
+  "measurementId": "G-M5QB9S0X6B",
+  "oAuthClientId": "16089099724-ctccj0gs7e7ipemlp3ouudm6cvv3i0km.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }

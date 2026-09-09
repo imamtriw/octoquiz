@@ -7,7 +7,6 @@ import {
   Volume2, 
   VolumeX, 
   Music, 
-  Users, 
   Sparkles,
   Share2,
   Lock,
@@ -33,7 +32,6 @@ interface NavbarProps {
   activeSession?: ActiveQuizSession;
   activeSessionCode?: string;
   isStudentRole?: boolean;
-  studentCount: number;
   questionCount: number;
   isMuted: boolean;
   onToggleMute: () => void;
@@ -64,7 +62,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeSession,
   activeSessionCode,
   isStudentRole,
-  studentCount,
   questionCount,
   isMuted,
   onToggleMute,
@@ -388,13 +385,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </>
             )}
           </button>
-
-          {/* Live Student Count Pill */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900/90 border border-cyan-500/20 text-xs">
-            <Users className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="font-extrabold text-white">{studentCount}</span>
-            <span className="text-[11px] text-slate-400">Siswa</span>
-          </div>
 
         </div>
 

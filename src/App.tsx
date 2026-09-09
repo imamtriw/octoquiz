@@ -444,7 +444,23 @@ export default function App() {
       students: students.filter(student => student.quizCode === activeSession.quizCode),
       playedAt: Date.now(),
     };
-    setQuizHistory(previous => [historyEntry, ...previous.filter(entry => entry.session.quizCode !== activeSession.quizCode)]);
+    const nextHistory = [historyEntry, ...quizHistory];
+    try {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSION, JSON.stringify(nextSession));
+      localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+    } catch {
+      // ignore local persistence errors
+    }
+    saveCloudQuizState({
+      quizPackages,
+      activeSession: nextSession,
+      students,
+      quizHistory: nextHistory,
+    }).catch((error) => {
+      console.warn('Gagal menyimpan history kuis ke Cloud Firestore.', error);
+    });
+    setQuizHistory(nextHistory);
     setActiveSession(nextSession);
     broadcastSession(nextSession);
     setCurrentView('ADMIN_RESULTS');
@@ -629,7 +645,6 @@ export default function App() {
           }
         }}
         activeSession={activeSession}
-        studentCount={students.length}
         questionCount={currentQuestions.length}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}

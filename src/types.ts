@@ -113,6 +113,7 @@ export interface QuizPackage {
 }
 
 export type QuizSessionStatus = 'LOBBY' | 'IN_PROGRESS' | 'FINISHED';
+export type QuizSessionMode = 'LIVE' | 'ASSIGNMENT';
 
 export interface ActiveQuizSession {
   quizId: string;
@@ -123,6 +124,9 @@ export interface ActiveQuizSession {
   startedAt?: number;
   finishedAt?: number;
   customTeams: string[];
+  mode?: QuizSessionMode;
+  scheduledStartAt?: number;
+  scheduledEndAt?: number;
 }
 
 export interface QuizHistoryEntry {

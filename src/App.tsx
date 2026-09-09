@@ -498,7 +498,7 @@ export default function App() {
   };
 
   // Play Quiz Package with a new class & new generated quiz code
-  const handlePlayQuizSession = (pkg: QuizPackage, newClass: string, newCode: string) => {
+  const handlePlayQuizSession = (pkg: QuizPackage, newClass: string, newCode: string, mode: ActiveQuizSession['mode'] = 'LIVE', scheduledStartAt?: number, scheduledEndAt?: number) => {
     const nextSession: ActiveQuizSession = {
       quizId: pkg.id,
       quizCode: newCode,
@@ -507,6 +507,9 @@ export default function App() {
       status: 'LOBBY',
       startedAt: undefined,
       customTeams: pkg.customTeams,
+      mode,
+      scheduledStartAt,
+      scheduledEndAt,
     };
     const historyEntry: QuizHistoryEntry = {
       id: `${newCode}-${Date.now()}`,

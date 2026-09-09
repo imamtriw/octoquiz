@@ -26,7 +26,7 @@ import {
   Link as LinkIcon,
   Loader2
 } from 'lucide-react';
-import { Question, OptionKey, QuizPackage, ActiveQuizSession } from '../types';
+import { Question, OptionKey, QuizPackage, ActiveQuizSession, QuizSessionMode } from '../types';
 import { parseQuestionsCSV, downloadCSVTemplate } from '../utils/csvHelper';
 import { sound } from '../utils/audio';
 import { processImageUpload } from '../utils/imageHelper';
@@ -36,7 +36,7 @@ interface AdminQuestionManagerProps {
   activeSession: ActiveQuizSession;
   onSaveQuizPackage: (pkg: QuizPackage) => void;
   onDeleteQuizPackage: (id: string) => void;
-  onPlayQuizSession: (pkg: QuizPackage, newClass: string, newCode: string) => void;
+  onPlayQuizSession: (pkg: QuizPackage, newClass: string, newCode: string, mode: QuizSessionMode, scheduledStartAt?: number, scheduledEndAt?: number) => void;
   onResetDefaultQuestions: () => void;
   onSaveToDrive?: () => void;
 }
@@ -73,6 +73,9 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
   const [isPlayModalOpen, setIsPlayModalOpen] = useState(false);
   const [targetClassInput, setTargetClassInput] = useState(currentPackage?.targetClass || 'TI-3A');
   const [customCodeInput, setCustomCodeInput] = useState('');
+  const [sessionMode, setSessionMode] = useState<QuizSessionMode>('LIVE');
+  const [scheduledStartInput, setScheduledStartInput] = useState('');
+  const [scheduledEndInput, setScheduledEndInput] = useState('');
 
   // Custom Teams state inside current package
   const [newTeamInput, setNewTeamInput] = useState('');
@@ -309,7 +312,13 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
       : `OCTO-${Math.floor(100 + Math.random() * 900)}`;
     const targetClass = targetClassInput.trim() || currentPackage.targetClass || 'TI-3A';
 
-    onPlayQuizSession(currentPackage, targetClass, generatedCode);
+    const scheduledStartAt = sessionMode === 'ASSIGNMENT' && scheduledStartInput ? new Date(scheduledStartInput).getTime() : undefined;
+    const scheduledEndAt = sessionMode === 'ASSIGNMENT' && scheduledEndInput ? new Date(scheduledEndInput).getTime() : undefined;
+    if (sessionMode === 'ASSIGNMENT' && (!scheduledStartAt || !scheduledEndAt || scheduledEndAt <= scheduledStartAt)) {
+      alert('Waktu mulai dan selesai tugas harus diisi, dan waktu selesai harus setelah waktu mulai.');
+      return;
+    }
+    onPlayQuizSession(currentPackage, targetClass, generatedCode, sessionMode, scheduledStartAt, scheduledEndAt);
     setIsPlayModalOpen(false);
   };
 
@@ -519,6 +528,21 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
 
             {/* Quick Actions Card */}
             <div className="bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <label className="block text-xs font-bold uppercase text-cyan-200 mb-1.5">Mode Pelaksanaan</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setSessionMode('LIVE')} className={`rounded-xl border px-3 py-2 text-xs font-bold ${sessionMode === 'LIVE' ? 'border-cyan-400 bg-cyan-500/15 text-cyan-200' : 'border-white/10 text-slate-400'}`}>Live di Kelas</button>
+                  <button type="button" onClick={() => setSessionMode('ASSIGNMENT')} className={`rounded-xl border px-3 py-2 text-xs font-bold ${sessionMode === 'ASSIGNMENT' ? 'border-amber-400 bg-amber-500/15 text-amber-200' : 'border-white/10 text-slate-400'}`}>Tugas Terjadwal</button>
+                </div>
+              </div>
+
+              {sessionMode === 'ASSIGNMENT' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-2xl bg-amber-500/5 border border-amber-400/20">
+                  <label className="text-xs text-amber-200 font-bold">Waktu Mulai<input type="datetime-local" value={scheduledStartInput} onChange={event => setScheduledStartInput(event.target.value)} className="mt-1 w-full rounded-xl bg-[#080d19] border border-amber-400/30 px-3 py-2 text-xs text-white" /></label>
+                  <label className="text-xs text-amber-200 font-bold">Waktu Selesai<input type="datetime-local" value={scheduledEndInput} onChange={event => setScheduledEndInput(event.target.value)} className="mt-1 w-full rounded-xl bg-[#080d19] border border-amber-400/30 px-3 py-2 text-xs text-white" /></label>
+                </div>
+              )}
+
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-5 h-5 text-amber-400" />

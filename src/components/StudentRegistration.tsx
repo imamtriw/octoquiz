@@ -46,6 +46,17 @@ export const StudentRegistration: React.FC<StudentRegistrationProps> = ({
       sound.playIncorrect();
       return;
     }
+    const now = Date.now();
+    if (activeSession?.mode === 'ASSIGNMENT' && activeSession.scheduledStartAt && now < activeSession.scheduledStartAt) {
+      setErrorMessage(`Tugas belum dibuka. Mulai pada ${new Date(activeSession.scheduledStartAt).toLocaleString('id-ID')}.`);
+      sound.playIncorrect();
+      return;
+    }
+    if (activeSession?.mode === 'ASSIGNMENT' && activeSession.scheduledEndAt && now > activeSession.scheduledEndAt) {
+      setErrorMessage('Waktu pengerjaan tugas sudah berakhir.');
+      sound.playIncorrect();
+      return;
+    }
     if (!namaLengkap.trim()) {
       setErrorMessage('Nama Lengkap wajib diisi!');
       sound.playIncorrect();

@@ -3,6 +3,7 @@ import {
   Tv, 
   BookOpen, 
   FileSpreadsheet, 
+  History as HistoryIcon,
   Volume2, 
   VolumeX, 
   Music, 
@@ -221,6 +222,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <FileSpreadsheet className="w-4 h-4 text-amber-300" />
                   <span>Rekap Hasil Kelas</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => handleAdminNavigation('ADMIN_HISTORY')}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-all ${currentView === 'ADMIN_HISTORY' ? 'bg-emerald-500/15 text-emerald-200' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+                >
+                  <HistoryIcon className="w-4 h-4 text-emerald-300" />
+                  <span className="flex-1">History Kuis</span>
                 </button>
               </div>
             )}

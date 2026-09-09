@@ -7,6 +7,7 @@ import { StudentSummary } from './components/StudentSummary';
 import { AdminDisplay } from './components/AdminDisplay';
 import { AdminQuestionManager } from './components/AdminQuestionManager';
 import { AdminResults } from './components/AdminResults';
+import { AdminHistory } from './components/AdminHistory';
 import { HostAuthModal } from './components/HostAuthModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { 
@@ -22,6 +23,7 @@ import {
   AnswerDetail, 
   QuizPackage, 
   ActiveQuizSession,
+  QuizHistoryEntry,
   MusicTrackId 
 } from './types';
 import { GoogleUserProfile } from './utils/googleAuth';
@@ -35,6 +37,7 @@ const STORAGE_KEYS = {
   ACTIVE_SESSION: 'octoquiz_active_session_v1',
   STUDENTS: 'octoquiz_students_v1',
   HOST_PASSWORD: 'octoquiz_host_password_v3',
+  HISTORY: 'octoquiz_history_v1',
 };
 
 export default function App() {
@@ -93,6 +96,19 @@ export default function App() {
     return SAMPLE_SIMULATED_STUDENTS;
   });
 
+  const [quizHistory, setQuizHistory] = useState<QuizHistoryEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.HISTORY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // fallback
+    }
+    return [];
+  });
+
   // Navigation State
   const [currentView, setCurrentView] = useState<AppViewMode>('STUDENT_REGISTRATION');
   const [isHostAuthModalOpen, setIsHostAuthModalOpen] = useState(false);
@@ -119,6 +135,7 @@ export default function App() {
         if (!sharedJoinSession && cloudState?.quizPackages?.length) setQuizPackages(cloudState.quizPackages);
         if (!sharedJoinSession && cloudState?.activeSession?.quizCode) setActiveSession(cloudState.activeSession);
         if (cloudState?.students) setStudents(cloudState.students);
+        if (cloudState?.quizHistory) setQuizHistory(cloudState.quizHistory);
       })
       .catch((error) => {
         console.warn('Cloud storage belum aktif; memakai penyimpanan lokal.', error);
@@ -177,12 +194,20 @@ export default function App() {
   useEffect(() => {
     if (!cloudReady) return;
     const timeoutId = window.setTimeout(() => {
-      saveCloudQuizState({ quizPackages, activeSession, students }).catch((error) => {
+      saveCloudQuizState({ quizPackages, activeSession, students, quizHistory }).catch((error) => {
         console.warn('Gagal menyimpan data ke Cloud Firestore.', error);
       });
     }, 500);
     return () => window.clearTimeout(timeoutId);
-  }, [cloudReady, quizPackages, activeSession, students]);
+  }, [cloudReady, quizPackages, activeSession, students, quizHistory]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(quizHistory));
+    } catch {
+      // ignore
+    }
+  }, [quizHistory]);
 
   // Real-time Cross-tab Sync (via BroadcastChannel & Storage Event)
   useEffect(() => {
@@ -410,7 +435,16 @@ export default function App() {
     const nextSession: ActiveQuizSession = {
       ...activeSession,
       status: 'FINISHED',
+      finishedAt: Date.now(),
     };
+    const historyEntry: QuizHistoryEntry = {
+      id: `${activeSession.quizCode}-${Date.now()}`,
+      session: nextSession,
+      questions: currentQuestions,
+      students: students.filter(student => student.quizCode === activeSession.quizCode),
+      playedAt: Date.now(),
+    };
+    setQuizHistory(previous => [historyEntry, ...previous.filter(entry => entry.session.quizCode !== activeSession.quizCode)]);
     setActiveSession(nextSession);
     broadcastSession(nextSession);
     setCurrentView('ADMIN_RESULTS');
@@ -698,6 +732,10 @@ export default function App() {
             students={students}
             activeSession={activeSession}
           />
+        )}
+
+        {currentView === 'ADMIN_HISTORY' && (
+          <AdminHistory history={quizHistory} />
         )}
 
       </main>

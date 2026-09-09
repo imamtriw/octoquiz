@@ -125,6 +125,14 @@ export interface ActiveQuizSession {
   customTeams: string[];
 }
 
+export interface QuizHistoryEntry {
+  id: string;
+  session: ActiveQuizSession;
+  questions: Question[];
+  students: StudentResult[];
+  playedAt: number;
+}
+
 export type UserRole = 'ADMIN' | 'STUDENT';
 
 export type AppViewMode = 
@@ -133,7 +141,8 @@ export type AppViewMode =
   | 'STUDENT_SUMMARY'
   | 'ADMIN_DISPLAY'
   | 'ADMIN_QUESTIONS'
-  | 'ADMIN_RESULTS';
+  | 'ADMIN_RESULTS'
+  | 'ADMIN_HISTORY';
 
 export type MusicTrackId = 'quiz-party' | 'lofi-study' | 'neon-puzzle' | 'victory-fanfare' | 'chill-game';
 

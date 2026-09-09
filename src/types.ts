@@ -1,4 +1,5 @@
 export type OptionKey = 'A' | 'B' | 'C' | 'D';
+export type QuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER';
 
 export interface Question {
   id: string;
@@ -8,7 +9,11 @@ export interface Question {
   opsiC: string;
   opsiD: string;
   jawabanBenar: OptionKey;
+  jenisSoal?: QuestionType;
+  jawabanSingkat?: string;
   waktuDetik: number;
+  poin?: number;
+  kodeLibrary?: string;
   imageUrl?: string;
 }
 
@@ -48,8 +53,8 @@ export type QuestionStatus = 'CORRECT' | 'INCORRECT' | 'PARTIALLY_CORRECT' | 'UN
 export interface AnswerDetail {
   questionId: string;
   questionIndex: number;
-  selectedOption: OptionKey | 'TIMED_OUT' | null;
-  correctOption: OptionKey;
+  selectedOption: string | null;
+  correctOption: string;
   isCorrect: boolean;
   timeSpentSeconds: number;
   timeLimitSeconds: number;

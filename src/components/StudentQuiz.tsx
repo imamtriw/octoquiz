@@ -14,26 +14,38 @@ import {
   Maximize2,
   X
 } from 'lucide-react';
-import { Question, OptionKey, StudentRegistrationData, AnswerDetail } from '../types';
+import { Question, OptionKey, StudentRegistrationData, AnswerDetail, StudentResult } from '../types';
 import { sound } from '../utils/audio';
+import { RichText } from './RichText';
 
 interface StudentQuizProps {
   student: StudentRegistrationData;
   questions: Question[];
+  resumeStudent?: StudentResult | null;
   onCompleteQuiz: (answers: Record<string, AnswerDetail>, totalScore: number) => void;
-  onLiveScoreUpdate?: (currentScore: number, streak: number, qIndex: number) => void;
+  onLiveScoreUpdate?: (currentScore: number, streak: number, qIndex: number, answers?: Record<string, AnswerDetail>) => void;
 }
 
 export const StudentQuiz: React.FC<StudentQuizProps> = ({
   student,
   questions,
+  resumeStudent,
   onCompleteQuiz,
   onLiveScoreUpdate,
 }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, AnswerDetail>>({});
-  const [currentScore, setCurrentScore] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const progressKey = `octoquiz_progress_${student.quizCode}_${student.namaLengkap}_${student.kelas}`;
+  const savedProgress = useMemo(() => {
+    try {
+      const saved = localStorage.getItem(progressKey);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }, [progressKey]);
+  const [currentIndex, setCurrentIndex] = useState(savedProgress?.currentIndex ?? resumeStudent?.currentQuestionIndex ?? 0);
+  const [answers, setAnswers] = useState<Record<string, AnswerDetail>>(savedProgress?.answers || resumeStudent?.answers || {});
+  const [currentScore, setCurrentScore] = useState(savedProgress?.currentScore ?? resumeStudent?.totalScore ?? 0);
+  const [streak, setStreak] = useState(savedProgress?.streak ?? resumeStudent?.currentStreak ?? 0);
   const [isZoomImageModalOpen, setIsZoomImageModalOpen] = useState(false);
 
   // Current Question Timing State
@@ -41,13 +53,18 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
   const timeLimit = currentQuestion?.waktuDetik || 20;
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [isAnswered, setIsAnswered] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<OptionKey | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [shortAnswer, setShortAnswer] = useState('');
   const [feedback, setFeedback] = useState<{
     status: 'CORRECT' | 'INCORRECT' | 'TIMEOUT';
     scoreEarned: number;
     speedBonus: number;
     streakBonus: number;
   } | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem(progressKey, JSON.stringify({ currentIndex, answers, currentScore, streak }));
+  }, [progressKey, currentIndex, answers, currentScore, streak]);
 
   const optionsList = useMemo(() => {
     const optionKeys: OptionKey[] = ['A', 'B', 'C', 'D'];
@@ -75,7 +92,11 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     }));
   }, [currentQuestion, currentIndex]);
 
-  const correctOptionKey = optionsList.find(option => option.originalKey === currentQuestion.jawabanBenar)?.key || 'A';
+  const correctOptionKey = currentQuestion.jenisSoal === 'TRUE_FALSE'
+    ? (currentQuestion.jawabanSingkat || 'BENAR').toUpperCase()
+    : currentQuestion.jenisSoal === 'SHORT_ANSWER'
+      ? (currentQuestion.jawabanSingkat || '').trim().toLowerCase()
+      : optionsList.find(option => option.originalKey === currentQuestion.jawabanBenar)?.key || 'A';
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -85,6 +106,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     setTimeLeft(currentQuestion.waktuDetik);
     setIsAnswered(false);
     setSelectedOption(null);
+    setShortAnswer('');
     setFeedback(null);
   }, [currentIndex, currentQuestion]);
 
@@ -107,6 +129,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     };
 
     setAnswers(prev => ({ ...prev, [currentQuestion.id]: answerRecord }));
+    onLiveScoreUpdate?.(currentScore, 0, currentIndex, { ...answers, [currentQuestion.id]: answerRecord });
     setStreak(0);
     setFeedback({
       status: 'TIMEOUT',
@@ -114,7 +137,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
       speedBonus: 0,
       streakBonus: 0,
     });
-  }, [isAnswered, currentQuestion, currentIndex, correctOptionKey]);
+  }, [isAnswered, currentQuestion, currentIndex, correctOptionKey, currentScore, answers, onLiveScoreUpdate]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -140,7 +163,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
   }, [currentIndex, isAnswered, currentQuestion, handleTimeout]);
 
   // Handle option selection
-  const handleSelectOption = (optionKey: OptionKey) => {
+  const handleSelectOption = (optionKey: string) => {
     if (isAnswered || !currentQuestion) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
@@ -148,7 +171,9 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     setSelectedOption(optionKey);
 
     const timeSpent = Math.max(1, currentQuestion.waktuDetik - timeLeft);
-    const isCorrect = optionKey === correctOptionKey;
+    const isCorrect = currentQuestion.jenisSoal === 'SHORT_ANSWER'
+      ? optionKey.trim().toLowerCase() === correctOptionKey
+      : optionKey === correctOptionKey;
 
     let scoreEarned = 0;
     let speedBonus = 0;
@@ -161,7 +186,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
       newStreak = streak + 1;
       setStreak(newStreak);
 
-      const baseScore = 1000;
+      const baseScore = currentQuestion.poin || 1000;
       // Faster response yields higher speed bonus (up to 500)
       speedBonus = Math.round(speedRatio * 500);
       streakBonus = (newStreak - 1) * 100;
@@ -169,9 +194,6 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
 
       setCurrentScore(prev => {
         const updated = prev + scoreEarned;
-        if (onLiveScoreUpdate) {
-          onLiveScoreUpdate(updated, newStreak, currentIndex);
-        }
         return updated;
       });
 
@@ -191,9 +213,6 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
         speedBonus: 0,
         streakBonus: 0,
       });
-      if (onLiveScoreUpdate) {
-        onLiveScoreUpdate(currentScore, 0, currentIndex);
-      }
     }
 
     const answerRecord: AnswerDetail = {
@@ -209,6 +228,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     };
 
     setAnswers(prev => ({ ...prev, [currentQuestion.id]: answerRecord }));
+    onLiveScoreUpdate?.(currentScore + (isCorrect ? scoreEarned : 0), newStreak, currentIndex, { ...answers, [currentQuestion.id]: answerRecord });
   };
 
   // Move to next question or complete
@@ -219,6 +239,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
     } else {
       // Finished
       sound.playFanfare();
+      localStorage.removeItem(progressKey);
       onCompleteQuiz(answers, currentScore);
     }
   };
@@ -363,7 +384,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
         </div>
 
         <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-relaxed font-display">
-          {currentQuestion.pertanyaan}
+          <RichText text={currentQuestion.pertanyaan} />
         </h2>
 
         {/* Question Image Attachment */}
@@ -389,19 +410,27 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
         )}
       </div>
 
-      {/* 4 Interactive Option Cards (Wayground / Quizizz Style Grid) */}
+      {/* 4 Interactive Answer Area */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 mb-4">
-        {optionsList.map((opt) => {
+        {currentQuestion.jenisSoal === 'SHORT_ANSWER' ? (
+          <div className="md:col-span-2 space-y-3">
+            <input value={shortAnswer} onChange={event => setShortAnswer(event.target.value)} disabled={isAnswered} placeholder="Ketik jawaban singkat Anda..." className="w-full rounded-2xl border border-cyan-400/40 bg-[#121218] px-5 py-4 text-white outline-none focus:border-cyan-300" />
+            <button type="button" disabled={isAnswered || !shortAnswer.trim()} onClick={() => handleSelectOption(shortAnswer)} className="w-full rounded-2xl bg-cyan-400 px-5 py-3 font-black text-slate-950 disabled:opacity-40">Kirim Jawaban</button>
+          </div>
+        ) : (currentQuestion.jenisSoal === 'TRUE_FALSE' ? [
+          { key: 'A' as OptionKey, text: 'Benar', value: 'BENAR' },
+          { key: 'B' as OptionKey, text: 'Salah', value: 'SALAH' },
+        ] : optionsList.map(option => ({ ...option, value: option.key }))).map((opt) => {
           const style = OPTION_STYLES[opt.key];
-          const isSelected = selectedOption === opt.key;
-          const isCorrectSelection = isAnswered && isSelected && opt.key === correctOptionKey;
-          const isWrongSelection = isAnswered && isSelected && opt.key !== correctOptionKey;
+          const isSelected = selectedOption === opt.value;
+          const isCorrectSelection = isAnswered && isSelected && opt.value === correctOptionKey;
+          const isWrongSelection = isAnswered && isSelected && opt.value !== correctOptionKey;
 
           return (
             <button
               key={opt.key}
               disabled={isAnswered}
-              onClick={() => handleSelectOption(opt.key)}
+              onClick={() => handleSelectOption(opt.value)}
               className={`group relative p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 flex items-start gap-3.5 ${style.base} ${
                 !isAnswered ? style.hover + ' active:scale-[0.98]' : 'cursor-default'
               } ${
@@ -422,7 +451,7 @@ export const StudentQuiz: React.FC<StudentQuizProps> = ({
               {/* Option Text */}
               <div className="flex-1 pr-2">
                 <span className="text-sm sm:text-base font-semibold text-slate-100 block leading-snug group-hover:text-white">
-                  {opt.text}
+                  <RichText text={opt.text} />
                 </span>
               </div>
 

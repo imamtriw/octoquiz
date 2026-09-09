@@ -1,5 +1,7 @@
 import { Question, StudentResult, QuizPackage, ActiveQuizSession } from '../types';
 
+export const DEFAULT_TEAMS = Array.from({ length: 10 }, (_, index) => `Group ${index + 1}`);
+
 export const DEFAULT_QUESTIONS: Question[] = [
   {
     id: 'Q1',
@@ -10,6 +12,8 @@ export const DEFAULT_QUESTIONS: Question[] = [
     opsiD: 'FTP (File Transfer Protocol)',
     jawabanBenar: 'B',
     waktuDetik: 20,
+    poin: 1000,
+    kodeLibrary: 'NETWORK-BASIC',
   },
   {
     id: 'Q2',
@@ -20,6 +24,8 @@ export const DEFAULT_QUESTIONS: Question[] = [
     opsiD: 'Linked List',
     jawabanBenar: 'C',
     waktuDetik: 20,
+    poin: 1000,
+    kodeLibrary: 'ALGORITHM-BASIC',
     imageUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" width="100%" height="100%"><rect width="600" height="280" rx="16" fill="%230c1427"/><rect x="20" y="16" width="560" height="248" rx="12" fill="%23111c33" stroke="%2300e6a8" stroke-width="2" stroke-dasharray="6 4" opacity="0.6"/><path d="M 220,50 L 220,220 L 380,220 L 380,50" fill="none" stroke="%2338bdf8" stroke-width="4" stroke-linecap="round"/><rect x="235" y="170" width="130" height="40" rx="8" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><text x="300" y="195" font-family="sans-serif" font-size="13" font-weight="bold" fill="%23e2e8f0" text-anchor="middle">Elemen 1 (Bawah)</text><rect x="235" y="120" width="130" height="40" rx="8" fill="%231e293b" stroke="%2338bdf8" stroke-width="2"/><text x="300" y="145" font-family="sans-serif" font-size="13" font-weight="bold" fill="%23e2e8f0" text-anchor="middle">Elemen 2</text><rect x="235" y="70" width="130" height="40" rx="8" fill="%230284c7" stroke="%2338bdf8" stroke-width="2"/><text x="300" y="95" font-family="sans-serif" font-size="13" font-weight="bold" fill="%23ffffff" text-anchor="middle">Elemen 3 (TOP)</text><path d="M 120,80 Q 170,60 215,75" fill="none" stroke="%2322c55e" stroke-width="3"/><polygon points="220,77 207,70 211,82" fill="%2322c55e"/><text x="120" y="55" font-family="sans-serif" font-size="13" font-weight="bold" fill="%234ade80">PUSH (Masuk)</text><path d="M 385,75 Q 430,60 480,80" fill="none" stroke="%23f43f5e" stroke-width="3"/><polygon points="485,82 472,75 476,87" fill="%23f43f5e"/><text x="430" y="55" font-family="sans-serif" font-size="13" font-weight="bold" fill="%23fb7185">POP (Keluar)</text><rect x="180" y="235" width="240" height="28" rx="14" fill="%2300e6a8" /><text x="300" y="254" font-family="sans-serif" font-size="12" font-weight="900" fill="%23042f2e" text-anchor="middle">LIFO: LAST IN FIRST OUT</text></svg>',
   },
   {
@@ -31,6 +37,8 @@ export const DEFAULT_QUESTIONS: Question[] = [
     opsiD: 'Hanya bisa berjalan di port 8080',
     jawabanBenar: 'A',
     waktuDetik: 25,
+    poin: 1000,
+    kodeLibrary: 'API-BASIC',
   },
   {
     id: 'Q4',
@@ -41,6 +49,8 @@ export const DEFAULT_QUESTIONS: Question[] = [
     opsiD: 'O(n log n)',
     jawabanBenar: 'D',
     waktuDetik: 25,
+    poin: 1000,
+    kodeLibrary: 'ALGORITHM-BASIC',
   },
   {
     id: 'Q5',
@@ -51,6 +61,8 @@ export const DEFAULT_QUESTIONS: Question[] = [
     opsiD: 'SELECT FILTER',
     jawabanBenar: 'B',
     waktuDetik: 20,
+    poin: 1000,
+    kodeLibrary: 'DATABASE-BASIC',
   },
   {
     id: 'Q6',
@@ -61,6 +73,8 @@ export const DEFAULT_QUESTIONS: Question[] = [
     opsiD: 'One Responsibility Principle',
     jawabanBenar: 'B',
     waktuDetik: 30,
+    poin: 1000,
+    kodeLibrary: 'OOP-BASIC',
   }
 ];
 
@@ -70,12 +84,7 @@ export const INITIAL_QUIZ_PACKAGES: QuizPackage[] = [
     title: 'Kuis Jaringan & Arsitektur Komputer',
     description: 'Konsep protokol jaringan, DNS, OSI layer, dan model komunikasi terdistribusi.',
     targetClass: 'TI-3A',
-    customTeams: [
-      'Kelompok Gurita Poseidon',
-      'Kelompok Lumba Samudera',
-      'Kelompok Hiu Karang',
-      'Kelompok Penyu Atlantis'
-    ],
+    customTeams: DEFAULT_TEAMS,
     questions: DEFAULT_QUESTIONS,
     createdAt: Date.now() - 86400000,
     updatedAt: Date.now() - 86400000,
@@ -85,12 +94,7 @@ export const INITIAL_QUIZ_PACKAGES: QuizPackage[] = [
     title: 'Kuis Algoritma & Rekayasa Perangkat Lunak',
     description: 'Pemrograman berorientasi objek, kompleksitas algoritma, dan desain sistem.',
     targetClass: 'TI-3B',
-    customTeams: [
-      'Tim Kraken Merah',
-      'Tim Marlin Emas',
-      'Tim Cumi Neon',
-      'Tim Paus Biru'
-    ],
+    customTeams: DEFAULT_TEAMS,
     questions: DEFAULT_QUESTIONS.slice(1, 6),
     createdAt: Date.now() - 43200000,
     updatedAt: Date.now() - 43200000,
@@ -103,12 +107,7 @@ export const DEFAULT_ACTIVE_SESSION: ActiveQuizSession = {
   title: 'Kuis Jaringan & Arsitektur Komputer',
   targetClass: 'TI-3A',
   status: 'LOBBY',
-  customTeams: [
-    'Kelompok Gurita Poseidon',
-    'Kelompok Lumba Samudera',
-    'Kelompok Hiu Karang',
-    'Kelompok Penyu Atlantis'
-  ]
+  customTeams: DEFAULT_TEAMS
 };
 
 export const CSV_TEMPLATE_CONTENT = `ID_Soal,Pertanyaan,Opsi_A,Opsi_B,Opsi_C,Opsi_D,Jawaban_Benar,Waktu_Detik,URL_Gambar

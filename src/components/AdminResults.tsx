@@ -33,35 +33,35 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTeam, setFilterTeam] = useState<string>('ALL');
+  const [resultMode, setResultMode] = useState<'INDIVIDUAL' | 'GROUP'>('INDIVIDUAL');
+  const activeStudents = useMemo(() => students.filter(student => Object.keys(student.answers).length > 0 || student.currentQuestionIndex > 0 || student.totalScore > 0 || student.isCompleted), [students]);
 
   // Trigger podium celebration on opening
   useEffect(() => {
-    if (students.length > 0) {
+    if (activeStudents.length > 0) {
       confetti({
         particleCount: 80,
         spread: 80,
         origin: { y: 0.5 }
       });
     }
-  }, [students.length]);
+  }, [activeStudents.length]);
 
   // Sort students descending by score
-  const sortedStudents = useMemo(() => {
-    return [...students].sort((a, b) => b.totalScore - a.totalScore);
-  }, [students]);
+  const sortedStudents = useMemo(() => [...activeStudents].sort((a, b) => b.totalScore - a.totalScore), [activeStudents]);
 
   // Overall Class Accuracy
   const classAccuracy = useMemo(() => {
     let total = 0;
     let correct = 0;
-    students.forEach(st => {
+    activeStudents.forEach(st => {
       Object.values(st.answers).forEach((a: AnswerDetail) => {
         total++;
         if (a.isCorrect) correct++;
       });
     });
     return total > 0 ? Math.round((correct / total) * 100) : 0;
-  }, [students]);
+  }, [activeStudents]);
 
   // Top 3 Podium
   const rank1 = sortedStudents[0];
@@ -71,11 +71,11 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
   // Distinct Teams for Filter
   const distinctTeams = useMemo(() => {
     const set = new Set<string>();
-    students.forEach(st => {
+    activeStudents.forEach(st => {
       if (st.namaKelompok) set.add(st.namaKelompok);
     });
     return Array.from(set);
-  }, [students]);
+  }, [activeStudents]);
 
   // Filtered Students for Overview Table
   const filteredStudents = useMemo(() => {
@@ -90,9 +90,19 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
     });
   }, [sortedStudents, searchTerm, filterTeam]);
 
+  const teamResults = useMemo(() => {
+    const teams = new Map<string, { name: string; score: number; members: number; accuracy: number }>();
+    activeStudents.forEach(student => {
+      const name = student.namaKelompok || 'Tanpa Kelompok';
+      const current = teams.get(name) || { name, score: 0, members: 0, accuracy: 0 };
+      teams.set(name, { name, score: current.score + student.totalScore, members: current.members + 1, accuracy: current.accuracy + student.accuracy });
+    });
+    return [...teams.values()].map(team => ({ ...team, accuracy: Math.round(team.accuracy / team.members) })).sort((a, b) => b.score - a.score);
+  }, [activeStudents]);
+
   const handleExportCSV = () => {
     sound.playClick();
-    exportResultsToCSV(students, questions, classAccuracy);
+    exportResultsToCSV(activeStudents, questions, classAccuracy);
   };
 
   const triggerConfetti = () => {
@@ -115,7 +125,7 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
               Result & Rekap Akhir
             </span>
             <span className="text-xs text-cyan-200/70">
-              {students.length} Mahasiswa • {questions.length} Soal • {activeSession ? `Sesi ${activeSession.quizCode}` : ''}
+              {activeStudents.length} Peserta Mengerjakan • {questions.length} Soal • {activeSession ? `Sesi ${activeSession.quizCode}` : ''}
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white font-display">
@@ -146,8 +156,15 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
         </div>
       </div>
 
+      <div className="flex items-center gap-2 p-1 rounded-2xl bg-[#0e172a]/95 border border-cyan-500/20 w-fit">
+        {[
+          ['INDIVIDUAL', 'Individu'],
+          ['GROUP', 'Group'],
+        ].map(([value, label]) => <button key={value} type="button" onClick={() => setResultMode(value as typeof resultMode)} className={`px-4 py-2 rounded-xl text-xs font-bold ${resultMode === value ? 'bg-cyan-400 text-slate-950' : 'text-slate-400 hover:text-white'}`}>{label}</button>)}
+      </div>
+
       {/* Podium 1, 2, 3 (Aquatic Themed Quiz Podium) */}
-      <div className="bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className={`${resultMode === 'INDIVIDUAL' ? '' : 'hidden'} bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden`}>
         
         {/* Glow ambient */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -162,19 +179,21 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
           </p>
         </div>
 
-        {students.length === 0 ? (
+        {activeStudents.length === 0 ? (
           <div className="py-12 text-center text-slate-500">
             <Waves className="w-12 h-12 mx-auto mb-2 opacity-30 text-cyan-400" />
             <p className="text-sm">Belum ada data kuis untuk menampilkan podium.</p>
           </div>
         ) : (
-          <div className="flex flex-col md:flex-row items-end justify-center gap-4 sm:gap-6 pt-4 pb-2 relative z-10 max-w-3xl mx-auto">
+          <div className="relative flex flex-col md:flex-row items-end justify-center gap-4 sm:gap-6 pt-10 pb-2 relative z-10 max-w-3xl mx-auto">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] h-5 rounded-full bg-gradient-to-r from-cyan-500/10 via-amber-400/30 to-cyan-500/10 border border-amber-300/20 shadow-[0_0_30px_rgba(251,191,36,0.2)]" />
             
             {/* Rank 2 (Silver - Left) */}
             <div className="w-full md:w-1/3 flex flex-col items-center order-2 md:order-1">
               {rank2 ? (
                 <div className="w-full flex flex-col items-center">
                   <div className="relative mb-2">
+                    <Medal className="w-8 h-8 text-slate-300 mx-auto mb-1" />
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-200 to-slate-400 flex items-center justify-center text-3xl shadow-lg border-2 border-white/40">
                       {rank2.avatar || '🐬'}
                     </div>
@@ -243,6 +262,7 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
               {rank3 ? (
                 <div className="w-full flex flex-col items-center">
                   <div className="relative mb-2">
+                    <Medal className="w-8 h-8 text-amber-500 mx-auto mb-1" />
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-3xl shadow-lg border-2 border-white/30">
                       {rank3.avatar || '🦈'}
                     </div>
@@ -278,7 +298,7 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
       </div>
 
       {/* Overall Class Accuracy Bar (0% - 100%) */}
-      <div className="bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 shadow-xl">
+      <div className={`${resultMode === 'INDIVIDUAL' ? '' : 'hidden'} bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 shadow-xl`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div>
             <h4 className="text-base font-extrabold text-white font-display">
@@ -309,8 +329,15 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
         </div>
       </div>
 
+      <div className={`${resultMode === 'GROUP' ? '' : 'hidden'} bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 shadow-xl`}>
+        <div className="flex items-center justify-between mb-4"><div><h3 className="text-lg font-bold text-white font-display">Podium Group Top 3</h3><p className="text-xs text-slate-400">Tiga group dengan akumulasi skor tertinggi.</p></div><Users className="w-6 h-6 text-cyan-300" /></div>
+        <div className="relative flex flex-col md:flex-row items-end justify-center gap-3 mb-6 pt-8 pb-2">{teamResults.slice(0, 3).map((team, index) => <div key={team.name} className={`w-full md:w-1/3 rounded-t-2xl border p-4 text-center ${index === 0 ? 'min-h-44 border-amber-400/60 bg-gradient-to-t from-amber-950/70 to-amber-500/20' : index === 1 ? 'min-h-32 border-slate-300/40 bg-gradient-to-t from-slate-950/80 to-slate-400/15' : 'min-h-28 border-amber-700/50 bg-gradient-to-t from-amber-950/80 to-amber-700/15'}`}><div className="flex justify-center">{index === 0 ? <Trophy className="w-8 h-8 text-amber-400" /> : <Medal className={`w-8 h-8 ${index === 1 ? 'text-slate-300' : 'text-amber-500'}`} />}</div><div className="text-2xl font-black text-amber-300 mt-1">#{index + 1}</div><div className="text-white font-bold mt-2">{team.name}</div><div className="text-xs text-slate-400 mt-1">{team.members} anggota • {team.accuracy}% akurasi</div><div className="text-lg font-black text-emerald-300 mt-2">{team.score.toLocaleString('id-ID')} pts</div></div>)}<div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[92%] h-4 rounded-full bg-gradient-to-r from-cyan-500/10 via-amber-400/30 to-cyan-500/10 border border-amber-300/20" /></div>
+        <div className="flex items-center justify-between mb-4"><h3 className="text-lg font-bold text-white font-display">Rekap Nilai Group</h3><span className="text-xs text-cyan-300">Peserta yang mengerjakan saja</span></div>
+        <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-white/10 text-cyan-300 uppercase"><th className="p-3">Rank</th><th className="p-3">Group</th><th className="p-3">Anggota</th><th className="p-3">Total Skor</th><th className="p-3">Rata-rata Akurasi</th></tr></thead><tbody>{teamResults.map((team, index) => <tr key={team.name} className="border-b border-white/5"><td className="p-3 font-black text-amber-300">#{index + 1}</td><td className="p-3 font-bold text-white">{team.name}</td><td className="p-3 text-slate-300">{team.members}</td><td className="p-3 font-black text-emerald-300">{team.score.toLocaleString('id-ID')}</td><td className="p-3 text-cyan-200">{team.accuracy}%</td></tr>)}</tbody></table></div>
+      </div>
+
       {/* Detailed Overview Table (Tabel Rekap Detail) */}
-      <div className="bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 shadow-xl space-y-4">
+      <div className={`${resultMode === 'INDIVIDUAL' ? '' : 'hidden'} bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 shadow-xl space-y-4`}>
         
         {/* Table Header & Search/Filter Controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-cyan-500/20">
@@ -343,7 +370,7 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
                 onChange={(e) => setFilterTeam(e.target.value)}
                 className="px-3 py-2 bg-[#080d19] border border-cyan-500/30 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
               >
-                <option value="ALL">Semua Kelompok ({students.length})</option>
+                <option value="ALL">Semua Kelompok ({activeStudents.length})</option>
                 {distinctTeams.map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Upload, 
   Download, 
@@ -26,7 +26,8 @@ import {
   Link as LinkIcon,
   Loader2
 } from 'lucide-react';
-import { Question, OptionKey, QuizPackage, ActiveQuizSession, QuizSessionMode } from '../types';
+import { Question, OptionKey, QuizPackage, ActiveQuizSession, QuizSessionMode, QuestionType } from '../types';
+import { DEFAULT_TEAMS } from '../data/defaultQuestions';
 import { parseQuestionsCSV, downloadCSVTemplate } from '../utils/csvHelper';
 import { sound } from '../utils/audio';
 import { processImageUpload } from '../utils/imageHelper';
@@ -57,7 +58,10 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
   const currentPackage = quizPackages.find(p => p.id === selectedPackageId) || quizPackages[0];
 
   // Tab: 'QUESTIONS' or 'PACKAGES' or 'TEAMS'
-  const [managerTab, setManagerTab] = useState<'QUESTIONS' | 'PACKAGES' | 'TEAMS'>('QUESTIONS');
+  const [managerTab, setManagerTab] = useState<'QUESTIONS' | 'PACKAGES' | 'TEAMS' | 'LIBRARY'>('QUESTIONS');
+  const [libraryKeyword, setLibraryKeyword] = useState('');
+  const [quickTime, setQuickTime] = useState(20);
+  const [quickPoints, setQuickPoints] = useState(1000);
 
   // Question Edit modal
   const [isEditingQuestion, setIsEditingQuestion] = useState(false);
@@ -66,8 +70,9 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
   // New/Edit Quiz Package Modal
   const [isEditingPackage, setIsEditingPackage] = useState(false);
   const [packageTitle, setPackageTitle] = useState('');
-  const [packageClass, setPackageClass] = useState('TI-3A');
   const [packageDesc, setPackageDesc] = useState('');
+  const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
+  const [saveAsNewPackage, setSaveAsNewPackage] = useState(false);
 
   // Play modal
   const [isPlayModalOpen, setIsPlayModalOpen] = useState(false);
@@ -96,6 +101,21 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
     waktuDetik: 20,
     imageUrl: undefined,
   });
+  const questionTextRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertQuestionMarkup = (prefix: string, suffix = prefix) => {
+    const textarea = questionTextRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = formData.pertanyaan.slice(start, end) || 'teks';
+    const nextText = `${formData.pertanyaan.slice(0, start)}${prefix}${selected}${suffix}${formData.pertanyaan.slice(end)}`;
+    setFormData(prev => ({ ...prev, pertanyaan: nextText }));
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+    });
+  };
 
   // Image Upload State
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -158,6 +178,10 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
       opsiD: '',
       jawabanBenar: 'A',
       waktuDetik: 20,
+      poin: 1000,
+      kodeLibrary: '',
+      jenisSoal: 'MULTIPLE_CHOICE',
+      jawabanSingkat: '',
       imageUrl: undefined,
     });
     setImageUploadError(null);
@@ -280,25 +304,23 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
     if (!packageTitle.trim()) return;
     sound.playClick();
 
+    const existingPackage = editingPackageId ? quizPackages.find(pkg => pkg.id === editingPackageId) : null;
     const newPkg: QuizPackage = {
-      id: `quiz-pkg-${Date.now()}`,
+      id: existingPackage && !saveAsNewPackage ? existingPackage.id : `quiz-pkg-${Date.now()}`,
       title: packageTitle.trim(),
       description: packageDesc.trim() || 'Paket soal kuis kelas baru.',
-      targetClass: packageClass.trim().toUpperCase() || 'TI-3A',
-      customTeams: [
-        'Kelompok Gurita Poseidon',
-        'Kelompok Lumba Samudera',
-        'Kelompok Hiu Karang',
-        'Kelompok Penyu Atlantis'
-      ],
-      questions: [],
-      createdAt: Date.now(),
+      targetClass: existingPackage?.targetClass || '',
+      customTeams: existingPackage?.customTeams?.length ? existingPackage.customTeams : DEFAULT_TEAMS,
+      questions: existingPackage?.questions || [],
+      createdAt: existingPackage?.createdAt || Date.now(),
       updatedAt: Date.now(),
     };
 
     onSaveQuizPackage(newPkg);
     setSelectedPackageId(newPkg.id);
     setIsEditingPackage(false);
+    setEditingPackageId(null);
+    setSaveAsNewPackage(false);
     setPackageTitle('');
     setPackageDesc('');
   };
@@ -346,7 +368,13 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
-            onClick={() => setIsEditingPackage(true)}
+            onClick={() => {
+              setEditingPackageId(null);
+              setSaveAsNewPackage(false);
+              setPackageTitle('');
+              setPackageDesc('');
+              setIsEditingPackage(true);
+            }}
             className="px-4 py-2.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white transition-all flex items-center gap-1.5 shadow-md shadow-cyan-600/20"
           >
             <FolderPlus className="w-4 h-4" />
@@ -500,7 +528,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                   Pilih atau Tarik File CSV ke Sini
                 </span>
                 <span className="text-xs text-slate-400 mt-1 block">
-                  Format: ID_Soal, Pertanyaan, Opsi_A, Opsi_B, Opsi_C, Opsi_D, Jawaban_Benar, Waktu_Detik
+                  Format: ID_Soal, Pertanyaan, Opsi_A, Opsi_B, Opsi_C, Opsi_D, Jawaban_Benar, Waktu_Detik, Poin, Kode_Library
                 </span>
               </label>
 
@@ -528,6 +556,15 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
 
             {/* Quick Actions Card */}
             <div className="bg-[#0e172a]/95 border border-cyan-500/20 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+              <div>
+                <label className="block text-xs font-bold uppercase text-cyan-200 mb-1.5">Waktu Cepat Semua Soal</label>
+                <div className="flex gap-2">
+                  <input title="Waktu semua soal" type="number" min="5" max="120" value={quickTime} onChange={event => setQuickTime(Number(event.target.value) || 20)} className="w-20 rounded-xl bg-[#080d19] border border-cyan-400/30 px-2 py-2 text-xs text-white" />
+                  <input title="Poin semua soal" type="number" min="1" value={quickPoints} onChange={event => setQuickPoints(Number(event.target.value) || 1000)} className="w-20 rounded-xl bg-[#080d19] border border-emerald-400/30 px-2 py-2 text-xs text-white" />
+                  <button type="button" onClick={() => currentPackage && onSaveQuizPackage({ ...currentPackage, questions: currentPackage.questions.map(question => ({ ...question, waktuDetik: quickTime, poin: quickPoints })), updatedAt: Date.now() })} className="flex-1 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-2 py-2 text-xs font-bold text-cyan-200">Terapkan</button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase text-cyan-200 mb-1.5">Mode Pelaksanaan</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -571,6 +608,10 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                   <Download className="w-3.5 h-3.5" />
                   <span>Unduh Contoh Format CSV</span>
                 </button>
+                <button
+                  onClick={() => setManagerTab('LIBRARY')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${managerTab === 'LIBRARY' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40' : 'text-slate-400 hover:text-white'}`}
+                >Library Soal</button>
               </div>
             </div>
 
@@ -604,9 +645,18 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                       required
                     />
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Kunci Jawaban Benar</label>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Jenis Soal</label>
+                    <select value={formData.jenisSoal || 'MULTIPLE_CHOICE'} onChange={(e) => setFormData({ ...formData, jenisSoal: e.target.value as QuestionType })} className="w-full p-2.5 bg-[#080d19] border border-cyan-500/20 rounded-xl text-white text-xs font-bold">
+                      <option value="MULTIPLE_CHOICE">Multiple Choice</option>
+                      <option value="TRUE_FALSE">Benar / Salah</option>
+                      <option value="SHORT_ANSWER">Isian Singkat</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Kunci Jawaban</label>
                     <select
+                      hidden={formData.jenisSoal === 'SHORT_ANSWER'}
                       value={formData.jawabanBenar}
                       onChange={(e) => setFormData({ ...formData, jawabanBenar: e.target.value as OptionKey })}
                       className="w-full p-2.5 bg-[#080d19] border border-cyan-500/20 rounded-xl text-white text-xs font-bold"
@@ -616,6 +666,8 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                       <option value="C">Opsi C</option>
                       <option value="D">Opsi D</option>
                     </select>
+                    {formData.jenisSoal === 'TRUE_FALSE' && <select value={formData.jawabanSingkat || 'BENAR'} onChange={event => setFormData({ ...formData, jawabanSingkat: event.target.value })} className="w-full p-2.5 bg-[#080d19] border border-cyan-500/20 rounded-xl text-white text-xs font-bold"><option value="BENAR">Benar</option><option value="SALAH">Salah</option></select>}
+                    {formData.jenisSoal === 'SHORT_ANSWER' && <input value={formData.jawabanSingkat || ''} onChange={event => setFormData({ ...formData, jawabanSingkat: event.target.value })} placeholder="Jawaban yang benar" className="w-full p-2.5 bg-[#080d19] border border-cyan-500/20 rounded-xl text-white text-xs" required />}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1">Waktu (Detik)</label>
@@ -629,11 +681,26 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                       required
                     />
                   </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Poin Soal</label>
+                    <input type="number" min="1" value={formData.poin || 1000} onChange={(e) => setFormData({ ...formData, poin: parseInt(e.target.value, 10) || 1000 })} className="w-full p-2.5 bg-[#080d19] border border-cyan-500/20 rounded-xl text-white text-xs" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Kode Library</label>
+                    <input type="text" value={formData.kodeLibrary || ''} onChange={(e) => setFormData({ ...formData, kodeLibrary: e.target.value.toUpperCase() })} placeholder="NETWORK-BASIC" className="w-full p-2.5 bg-[#080d19] border border-cyan-500/20 rounded-xl text-white text-xs uppercase" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Pertanyaan</label>
+                  <div className="flex flex-wrap items-center gap-1 mb-2">
+                    {[
+                      ['B', '**', 'Tebal'], ['I', '*', 'Miring'], ['U', '__', 'Garis bawah'], ['x²', '^^', 'Pangkat'], ['√', '$', 'Rumus inline'],
+                    ].map(([label, marker, title]) => <button key={title} type="button" title={title} onClick={() => insertQuestionMarkup(marker)} className="px-2 py-1 rounded-md bg-[#111c33] border border-white/10 text-[11px] font-bold text-cyan-200 hover:border-cyan-400">{label}</button>)}
+                    <span className="text-[10px] text-slate-500 ml-1">Gunakan `$...$` untuk rumus KaTeX</span>
+                  </div>
                   <textarea
+                    ref={questionTextRef}
                     rows={2}
                     value={formData.pertanyaan}
                     onChange={(e) => setFormData({ ...formData, pertanyaan: e.target.value })}
@@ -803,7 +870,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {formData.jenisSoal !== 'SHORT_ANSWER' && formData.jenisSoal !== 'TRUE_FALSE' && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-rose-400 mb-1">Opsi A *</label>
                     <input
@@ -842,7 +909,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                       className="w-full p-2.5 bg-[#080d19] border border-cyan-500/20 rounded-xl text-white text-xs"
                     />
                   </div>
-                </div>
+                </div>}
 
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button
@@ -898,6 +965,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                           <span className="flex items-center gap-1 text-[11px] text-slate-400">
                             <Clock className="w-3 h-3" /> {q.waktuDetik} detik
                           </span>
+                          <span className="text-[11px] font-bold text-emerald-400">{q.poin || 1000} poin</span>
                           <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-amber-400">
                             Kunci: {q.jawabanBenar}
                           </span>
@@ -1035,6 +1103,22 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
         </div>
       )}
 
+      {managerTab === 'LIBRARY' && (
+        <div className="bg-[#0e172a]/95 border border-emerald-500/20 rounded-3xl p-6 shadow-xl space-y-5">
+          <div><h3 className="text-lg font-bold text-white">Library Soal</h3><p className="text-xs text-slate-400 mt-1">Cari semua soal dari seluruh paket dengan kode library atau kata kunci yang sama.</p></div>
+          <input value={libraryKeyword} onChange={event => setLibraryKeyword(event.target.value)} placeholder="Contoh: NETWORK-BASIC, DNS, algoritma" className="w-full rounded-xl bg-[#080d19] border border-emerald-400/30 px-4 py-3 text-sm text-white uppercase" />
+          <div className="space-y-2">
+            {quizPackages.flatMap(pkg => pkg.questions.map(question => ({ pkg, question }))).filter(({ question }) => {
+              const keyword = libraryKeyword.trim().toLowerCase();
+              return keyword && [question.kodeLibrary, question.id, question.pertanyaan].some(value => value?.toLowerCase().includes(keyword));
+            }).map(({ pkg, question }) => (
+              <div key={`${pkg.id}-${question.id}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-[#080d19] border border-white/10 p-4"><div><div className="text-xs text-emerald-300 font-bold">{question.kodeLibrary || 'TANPA-KODE'} • {question.poin || 1000} poin • {question.waktuDetik} detik</div><div className="text-sm text-white font-semibold mt-1">{question.pertanyaan}</div><div className="text-[11px] text-slate-500">Sumber: {pkg.title}</div></div><button type="button" onClick={() => currentPackage && onSaveQuizPackage({ ...currentPackage, questions: currentPackage.questions.some(item => item.id === question.id) ? currentPackage.questions : [...currentPackage.questions, { ...question, id: `${question.id}-${Date.now()}` }], updatedAt: Date.now() })} className="rounded-xl bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950">Tambahkan ke Paket</button></div>
+            ))}
+            {libraryKeyword && !quizPackages.some(pkg => pkg.questions.some(question => [question.kodeLibrary, question.id, question.pertanyaan].some(value => value?.toLowerCase().includes(libraryKeyword.trim().toLowerCase())))) && <p className="py-8 text-center text-sm text-slate-500">Soal dengan kata kunci tersebut belum ditemukan.</p>}
+          </div>
+        </div>
+      )}
+
       {/* ========================================================= */}
       {/* TAB 3: PACKAGES LIBRARY (MULTI-QUIZ)                      */}
       {/* ========================================================= */}
@@ -1110,6 +1194,20 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                     Buka Soal
                   </button>
 
+                  <button
+                    onClick={() => {
+                      setSelectedPackageId(pkg.id);
+                      setEditingPackageId(pkg.id);
+                      setPackageTitle(pkg.title);
+                      setPackageDesc(pkg.description || '');
+                      setSaveAsNewPackage(false);
+                      setIsEditingPackage(true);
+                    }}
+                    className="px-3.5 py-2.5 rounded-xl bg-[#111c33] text-amber-300 border border-amber-500/20 text-xs font-semibold hover:text-white"
+                  >
+                    Edit Paket
+                  </button>
+
                   {quizPackages.length > 1 && (
                     <button
                       onClick={() => {
@@ -1140,7 +1238,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-cyan-500/20">
               <h3 className="text-xl font-black text-white font-display flex items-center gap-2">
                 <FolderPlus className="w-5 h-5 text-cyan-400" />
-                <span>Buat Paket Kuis Baru</span>
+                <span>{editingPackageId ? 'Edit Paket Kuis' : 'Buat Paket Kuis Baru'}</span>
               </h3>
               <button onClick={() => setIsEditingPackage(false)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -1164,19 +1262,6 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
 
               <div>
                 <label className="block text-xs font-bold uppercase text-cyan-200 mb-1">
-                  Kelas Target Default
-                </label>
-                <input
-                  type="text"
-                  value={packageClass}
-                  onChange={(e) => setPackageClass(e.target.value)}
-                  placeholder="Contoh: TI-3A"
-                  className="w-full px-4 py-3 bg-[#080d19] border border-cyan-500/30 rounded-2xl text-white text-sm uppercase focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-cyan-200 mb-1">
                   Deskripsi Singkat
                 </label>
                 <textarea
@@ -1187,6 +1272,13 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                   className="w-full px-4 py-3 bg-[#080d19] border border-cyan-500/30 rounded-2xl text-white text-sm focus:outline-none focus:border-cyan-400"
                 />
               </div>
+
+              {editingPackageId && (
+                <label className="flex items-center gap-2 text-xs text-amber-200 cursor-pointer">
+                  <input type="checkbox" checked={saveAsNewPackage} onChange={event => setSaveAsNewPackage(event.target.checked)} />
+                  Simpan sebagai paket baru (paket lama tetap dipertahankan)
+                </label>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-3">
                 <button
@@ -1200,7 +1292,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
                   type="submit"
                   className="px-6 py-2.5 rounded-xl text-xs font-black bg-cyan-400 text-slate-950 hover:bg-cyan-300 shadow-md"
                 >
-                  Simpan & Buat Kuis
+                  {editingPackageId && !saveAsNewPackage ? 'Simpan Perubahan Paket' : 'Simpan Paket'}
                 </button>
               </div>
             </form>

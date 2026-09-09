@@ -55,7 +55,7 @@ export function parseCSVLines(text: string): string[][] {
 
 /**
  * Parses question bank CSV with columns:
- * ID_Soal, Pertanyaan, Opsi_A, Opsi_B, Opsi_C, Opsi_D, Jawaban_Benar (A/B/C/D), Waktu_Detik
+ * ID_Soal, Pertanyaan, Opsi_A, Opsi_B, Opsi_C, Opsi_D, Jawaban_Benar (A/B/C/D), Waktu_Detik, Poin, Kode_Library, Jenis_Soal, Jawaban_Singkat
  */
 export function parseQuestionsCSV(csvText: string): { questions: Question[]; errors: string[] } {
   const rows = parseCSVLines(csvText);
@@ -91,21 +91,32 @@ export function parseQuestionsCSV(csvText: string): { questions: Question[]; err
     const opsiD = row[5]?.trim() || '';
     const rawAnswer = (row[6]?.trim() || '').toUpperCase();
     const rawTime = row[7]?.trim();
+    const rawPoints = row[8]?.trim();
+    const kodeLibrary = row[9]?.trim() || undefined;
+    const rawType = (row[10]?.trim() || '').toUpperCase();
+    const jenisSoal = rawType === 'TRUE_FALSE' || rawType === 'SHORT_ANSWER' ? rawType : 'MULTIPLE_CHOICE';
+    const jawabanSingkat = row[11]?.trim() || undefined;
+    const rawImageUrl = row[12]?.trim();
 
     if (!pertanyaan) {
       errors.push(`Baris ${rowNum}: Kolom pertanyaan tidak boleh kosong.`);
       continue;
     }
 
-    if (!opsiA || !opsiB) {
+    if (jenisSoal === 'MULTIPLE_CHOICE' && (!opsiA || !opsiB)) {
       errors.push(`Baris ${rowNum}: Minimal Opsi A dan Opsi B wajib diisi.`);
       continue;
     }
 
     const validAnswers: OptionKey[] = ['A', 'B', 'C', 'D'];
     const answerKey = rawAnswer.charAt(0) as OptionKey;
-    if (!validAnswers.includes(answerKey)) {
+    if (jenisSoal === 'MULTIPLE_CHOICE' && !validAnswers.includes(answerKey)) {
       errors.push(`Baris ${rowNum}: Jawaban Benar harus salah satu dari A, B, C, atau D (Ditemukan: "${rawAnswer}").`);
+      continue;
+    }
+
+    if (jenisSoal !== 'MULTIPLE_CHOICE' && !jawabanSingkat) {
+      errors.push(`Baris ${rowNum}: Jawaban_Singkat wajib diisi untuk jenis soal ${jenisSoal}.`);
       continue;
     }
 
@@ -114,7 +125,8 @@ export function parseQuestionsCSV(csvText: string): { questions: Question[]; err
       waktuDetik = 20; // Default fallback
     }
 
-    const rawImageUrl = row[8]?.trim();
+    const poin = parseInt(rawPoints || '1000', 10);
+
     const imageUrl = rawImageUrl && (rawImageUrl.startsWith('http') || rawImageUrl.startsWith('data:image/')) 
       ? rawImageUrl 
       : undefined;
@@ -126,8 +138,12 @@ export function parseQuestionsCSV(csvText: string): { questions: Question[]; err
       opsiB,
       opsiC: opsiC || '-',
       opsiD: opsiD || '-',
-      jawabanBenar: answerKey,
+      jawabanBenar: jenisSoal === 'MULTIPLE_CHOICE' ? answerKey : 'A',
       waktuDetik,
+      poin: Number.isFinite(poin) && poin > 0 ? poin : 1000,
+      kodeLibrary,
+      jenisSoal,
+      jawabanSingkat,
       imageUrl
     });
   }
@@ -139,12 +155,10 @@ export function parseQuestionsCSV(csvText: string): { questions: Question[]; err
  * Downloads standard template CSV
  */
 export function downloadCSVTemplate(): void {
-  const csvContent = `ID_Soal,Pertanyaan,Opsi_A,Opsi_B,Opsi_C,Opsi_D,Jawaban_Benar,Waktu_Detik,URL_Gambar
-Q1,Protokol apa yang digunakan untuk web aman?,HTTP,HTTPS,FTP,SMTP,B,20,
-Q2,Di bawah ini yang BUKAN bahasa pemrograman adalah?,HTML,Python,Java,C++,A,15,
-Q3,Sistem operasi open source berbasis kernel Linux adalah?,Ubuntu,Windows 11,macOS,iOS,A,20,
-Q4,Satuan kecepatan transfer data jaringan komputer adalah?,Mbps,GHz,Watt,Kelvin,A,15,
-Q5,Struktur data antrean yang menerapkan FIFO adalah?,Stack,Queue,Tree,Graph,B,20,`;
+  const csvContent = `ID_Soal,Pertanyaan,Opsi_A,Opsi_B,Opsi_C,Opsi_D,Jawaban_Benar,Waktu_Detik,Poin,Kode_Library,Jenis_Soal,Jawaban_Singkat,URL_Gambar
+Q1,Protokol apa yang digunakan untuk web aman?,HTTP,HTTPS,FTP,SMTP,B,20,1000,NETWORK-BASIC,MULTIPLE_CHOICE,,
+Q2,Air mendidih pada 100 derajat Celsius.,,,,,,15,500,SCIENCE-BASIC,TRUE_FALSE,BENAR,
+Q3,Sebutkan protokol untuk menerjemahkan domain menjadi IP.,,,,,,20,800,NETWORK-BASIC,SHORT_ANSWER,DNS,`;
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);

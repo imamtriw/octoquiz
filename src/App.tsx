@@ -13,7 +13,8 @@ import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { 
   DEFAULT_QUESTIONS, 
   SAMPLE_SIMULATED_STUDENTS, 
-  INITIAL_QUIZ_PACKAGES 
+  INITIAL_QUIZ_PACKAGES,
+  DEFAULT_TEAMS,
 } from './data/defaultQuestions';
 import { 
   Question, 
@@ -42,15 +43,20 @@ const STORAGE_KEYS = {
 
 export default function App() {
   const sharedJoinSession = useMemo(() => readJoinSessionParam(), []);
+  const normalizePackage = (pkg: QuizPackage): QuizPackage => {
+    const firstTeam = pkg.customTeams?.[0] || '';
+    const isLegacyDefaultTeams = firstTeam.startsWith('Kelompok ') || firstTeam.startsWith('Tim ');
+    return isLegacyDefaultTeams || !pkg.customTeams?.length ? { ...pkg, customTeams: DEFAULT_TEAMS } : pkg;
+  };
 
   // Load Quiz Packages (Bank Soal)
   const [quizPackages, setQuizPackages] = useState<QuizPackage[]>(() => {
-    if (sharedJoinSession?.package) return [sharedJoinSession.package];
+    if (sharedJoinSession?.package) return [normalizePackage(sharedJoinSession.package)];
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PACKAGES);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map(normalizePackage);
       }
     } catch {
       // fallback
@@ -78,7 +84,7 @@ export default function App() {
       targetClass: initialPkg.targetClass,
       status: 'LOBBY',
       startedAt: undefined,
-      customTeams: initialPkg.customTeams,
+      customTeams: DEFAULT_TEAMS,
     };
   });
 
@@ -110,7 +116,13 @@ export default function App() {
   });
 
   // Navigation State
-  const [currentView, setCurrentView] = useState<AppViewMode>('STUDENT_REGISTRATION');
+  const [currentView, setCurrentView] = useState<AppViewMode>(() => {
+    try {
+      return localStorage.getItem('octoquiz_current_student_v1') ? 'STUDENT_QUIZ' : 'STUDENT_REGISTRATION';
+    } catch {
+      return 'STUDENT_REGISTRATION';
+    }
+  });
   const [isHostAuthModalOpen, setIsHostAuthModalOpen] = useState(false);
   const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
   const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(null);
@@ -121,7 +133,15 @@ export default function App() {
   });
 
   // Currently active player session
-  const [currentStudentData, setCurrentStudentData] = useState<StudentRegistrationData | null>(null);
+  const [currentStudentData, setCurrentStudentData] = useState<StudentRegistrationData | null>(() => {
+    try {
+      const saved = localStorage.getItem('octoquiz_current_student_v1');
+      return saved ? JSON.parse(saved) as StudentRegistrationData : null;
+    } catch {
+      return null;
+    }
+  });
+  const [resumeStudent, setResumeStudent] = useState<StudentResult | null>(null);
   const [completedStudentResult, setCompletedStudentResult] = useState<StudentResult | null>(null);
   const [cloudReady, setCloudReady] = useState(false);
 
@@ -132,7 +152,7 @@ export default function App() {
       .then((cloudState) => {
         if (cancelled) return;
         cloudLoaded = true;
-        if (!sharedJoinSession && cloudState?.quizPackages?.length) setQuizPackages(cloudState.quizPackages);
+        if (!sharedJoinSession && cloudState?.quizPackages?.length) setQuizPackages(cloudState.quizPackages.map(normalizePackage));
         if (!sharedJoinSession && cloudState?.activeSession?.quizCode) setActiveSession(cloudState.activeSession);
         if (cloudState?.students) setStudents(cloudState.students);
         if (cloudState?.quizHistory) setQuizHistory(cloudState.quizHistory);
@@ -298,6 +318,20 @@ export default function App() {
 
   // Handle Player Registration
   const handleStartQuiz = (data: StudentRegistrationData) => {
+    const existingStudent = students.find(student => (
+      !student.isCompleted &&
+      student.quizCode === data.quizCode &&
+      student.namaLengkap.trim().toLowerCase() === data.namaLengkap.trim().toLowerCase() &&
+      student.kelas.trim().toLowerCase() === data.kelas.trim().toLowerCase()
+    ));
+    if (existingStudent) {
+      setResumeStudent(existingStudent);
+      setCurrentStudentData(data);
+      localStorage.setItem('octoquiz_current_student_v1', JSON.stringify(data));
+      setCurrentView('STUDENT_QUIZ');
+      return;
+    }
+
     // Add student to the lobby / active list immediately so teacher sees them
     const newStudentId = `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const studentRecord: StudentResult = {
@@ -331,6 +365,8 @@ export default function App() {
     }
 
     setCurrentStudentData(data);
+    setResumeStudent(null);
+    localStorage.setItem('octoquiz_current_student_v1', JSON.stringify(data));
     setCurrentView('STUDENT_QUIZ');
   };
 
@@ -355,7 +391,7 @@ export default function App() {
     // Update the existing record or create
     let found = false;
     const updatedStudents = students.map(st => {
-      if (st.namaLengkap === currentStudentData.namaLengkap && st.kelas === currentStudentData.kelas) {
+      if (st.quizCode === currentStudentData.quizCode && st.namaLengkap === currentStudentData.namaLengkap && st.kelas === currentStudentData.kelas) {
         found = true;
         return {
           ...st,
@@ -374,7 +410,7 @@ export default function App() {
     });
 
     const completedRecord: StudentResult = found 
-      ? updatedStudents.find(s => s.namaLengkap === currentStudentData.namaLengkap)!
+      ? updatedStudents.find(s => s.quizCode === currentStudentData.quizCode && s.namaLengkap === currentStudentData.namaLengkap && s.kelas === currentStudentData.kelas)!
       : {
           id: `student-${Date.now()}`,
           quizCode: currentStudentData.quizCode,
@@ -404,28 +440,31 @@ export default function App() {
       });
     }
     setCompletedStudentResult(completedRecord);
+    setResumeStudent(null);
     broadcastStudents(finalList);
     setCurrentView('STUDENT_SUMMARY');
+    localStorage.removeItem('octoquiz_current_student_v1');
   };
 
   // Live score update during quiz
-  const handleLiveScoreUpdate = useCallback((currentScore: number, streak: number, qIndex: number) => {
+  const handleLiveScoreUpdate = useCallback((currentScore: number, streak: number, qIndex: number, liveAnswers?: Record<string, AnswerDetail>) => {
     if (!currentStudentData) return;
 
     setStudents(prev => {
       const updated = prev.map(st => {
-        if (st.namaLengkap === currentStudentData.namaLengkap && st.kelas === currentStudentData.kelas) {
+        if (st.quizCode === currentStudentData.quizCode && st.namaLengkap === currentStudentData.namaLengkap && st.kelas === currentStudentData.kelas) {
           return {
             ...st,
             totalScore: currentScore,
             currentStreak: streak,
             currentQuestionIndex: qIndex + 1,
+            answers: liveAnswers || st.answers,
             lastUpdated: Date.now(),
           };
         }
         return st;
       });
-      const updatedStudent = updated.find(st => st.namaLengkap === currentStudentData.namaLengkap && st.kelas === currentStudentData.kelas);
+      const updatedStudent = updated.find(st => st.quizCode === currentStudentData.quizCode && st.namaLengkap === currentStudentData.namaLengkap && st.kelas === currentStudentData.kelas);
       if (cloudReady && updatedStudent) {
         saveStudentToCloud(currentStudentData.quizCode, updatedStudent).catch((error) => {
           console.warn('Gagal menyimpan skor live ke Cloud Firestore.', error);
@@ -766,6 +805,7 @@ export default function App() {
           <StudentQuiz
             student={currentStudentData}
             questions={currentQuestions}
+            resumeStudent={resumeStudent}
             onCompleteQuiz={handleCompleteQuiz}
             onLiveScoreUpdate={handleLiveScoreUpdate}
           />

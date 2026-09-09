@@ -34,7 +34,7 @@ export const AdminResults: React.FC<AdminResultsProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTeam, setFilterTeam] = useState<string>('ALL');
   const [resultMode, setResultMode] = useState<'INDIVIDUAL' | 'GROUP'>('INDIVIDUAL');
-  const activeStudents = useMemo(() => students.filter(student => Object.keys(student.answers).length > 0 || student.currentQuestionIndex > 0 || student.totalScore > 0 || student.isCompleted), [students]);
+  const activeStudents = useMemo(() => students.filter(student => !student.id.startsWith('sim-') && (Object.keys(student.answers).length > 0 || student.currentQuestionIndex > 0 || student.totalScore > 0 || student.isCompleted)), [students]);
 
   // Trigger podium celebration on opening
   useEffect(() => {

@@ -12,6 +12,8 @@ const formatDate = (timestamp: number) => new Date(timestamp).toLocaleString('id
   timeStyle: 'short',
 });
 
+const isRealStudent = (student: StudentResult) => !student.id.startsWith('sim-');
+
 export const AdminHistory: React.FC<AdminHistoryProps> = ({ history }) => {
   const [selectedId, setSelectedId] = useState(history[0]?.id || '');
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +21,7 @@ export const AdminHistory: React.FC<AdminHistoryProps> = ({ history }) => {
 
   const rankedStudents = useMemo(() => {
     if (!selected) return [];
-    return [...selected.students].sort((first, second) => second.totalScore - first.totalScore);
+    return selected.students.filter(isRealStudent).sort((first, second) => second.totalScore - first.totalScore);
   }, [selected]);
 
   const filteredStudents = rankedStudents.filter(student => {
@@ -28,14 +30,15 @@ export const AdminHistory: React.FC<AdminHistoryProps> = ({ history }) => {
   });
 
   const stats = useMemo(() => {
-    const answers = selected?.students.flatMap(student => Object.values(student.answers)) || [];
+    const realStudents = selected?.students.filter(isRealStudent) || [];
+    const answers = realStudents.flatMap(student => Object.values(student.answers));
     const correct = answers.filter(answer => answer.isCorrect).length;
-    const completed = selected?.students.filter(student => student.isCompleted).length || 0;
+    const completed = realStudents.filter(student => student.isCompleted).length;
     return {
-      participants: selected?.students.length || 0,
+      participants: realStudents.length,
       completed,
       accuracy: answers.length ? Math.round((correct / answers.length) * 100) : 0,
-      averageScore: selected?.students.length ? Math.round(selected.students.reduce((sum, student) => sum + student.totalScore, 0) / selected.students.length) : 0,
+      averageScore: realStudents.length ? Math.round(realStudents.reduce((sum, student) => sum + student.totalScore, 0) / realStudents.length) : 0,
     };
   }, [selected]);
 
@@ -55,7 +58,7 @@ export const AdminHistory: React.FC<AdminHistoryProps> = ({ history }) => {
   }, [rankedStudents]);
 
   const handleExport = () => {
-    if (selected) exportResultsToCSV(selected.students, selected.questions, stats.accuracy);
+    if (selected) exportResultsToCSV(rankedStudents, selected.questions, stats.accuracy);
   };
 
   return (
@@ -79,7 +82,7 @@ export const AdminHistory: React.FC<AdminHistoryProps> = ({ history }) => {
             {history.map(entry => (
               <button key={entry.id} onClick={() => setSelectedId(entry.id)} className={`text-left p-4 rounded-2xl border transition-all ${selected?.id === entry.id ? 'bg-emerald-500/15 border-emerald-400/60' : 'bg-[#0e172a]/90 border-white/10 hover:border-cyan-400/40'}`}>
                 <div className="flex items-start justify-between gap-3"><div><div className="text-white font-black text-sm">{entry.session.title}</div><div className="text-xs text-cyan-300 font-mono mt-1">{entry.session.quizCode}</div></div><span className="text-[10px] text-slate-400 whitespace-nowrap">{formatDate(entry.playedAt)}</span></div>
-                <div className="text-xs text-slate-400 mt-3">{entry.students.length} peserta • {entry.questions.length} soal • {entry.session.status === 'FINISHED' ? 'Selesai' : 'Belum dimulai'}</div>
+                <div className="text-xs text-slate-400 mt-3">{entry.students.filter(isRealStudent).length} peserta • {entry.questions.length} soal • {entry.session.status === 'FINISHED' ? 'Selesai' : 'Belum dimulai'}</div>
               </button>
             ))}
           </section>

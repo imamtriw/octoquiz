@@ -88,7 +88,7 @@ export default function App() {
     };
   });
 
-  // Load students from LocalStorage or start with sample simulated class
+  // Load real students from LocalStorage; demo participants are opt-in only.
   const [students, setStudents] = useState<StudentResult[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.STUDENTS);
@@ -99,7 +99,7 @@ export default function App() {
     } catch {
       // fallback
     }
-    return SAMPLE_SIMULATED_STUDENTS;
+    return [];
   });
 
   const [quizHistory, setQuizHistory] = useState<QuizHistoryEntry[]>(() => {

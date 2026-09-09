@@ -124,13 +124,32 @@ export default function App() {
     }
   });
   const [isHostAuthModalOpen, setIsHostAuthModalOpen] = useState(false);
-  const [isHostAuthenticated, setIsHostAuthenticated] = useState(false);
+  const [isHostAuthenticated, setIsHostAuthenticated] = useState(() => {
+    const saved = localStorage.getItem('octoquiz_host_auth_v1');
+    return Boolean(saved && Number(saved) > Date.now());
+  });
   const [googleUser, setGoogleUser] = useState<GoogleUserProfile | null>(null);
   const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
   const [hostPassword, setHostPassword] = useState(() => {
     return localStorage.getItem(STORAGE_KEYS.HOST_PASSWORD) || 'dosenikn1234';
   });
+
+  useEffect(() => {
+    if (isHostAuthenticated) {
+      localStorage.setItem('octoquiz_host_auth_v1', String(Date.now() + 6 * 60 * 60 * 1000));
+    } else {
+      localStorage.removeItem('octoquiz_host_auth_v1');
+    }
+  }, [isHostAuthenticated]);
+
+  useEffect(() => {
+    const activeHistory = quizHistory.find(entry => entry.session.quizCode === activeSession.quizCode && entry.session.status !== 'FINISHED');
+    if (!activeHistory) return;
+    const sessionStudents = students.filter(student => student.quizCode === activeSession.quizCode && !student.id.startsWith('sim-'));
+    const nextHistory = quizHistory.map(entry => entry.id === activeHistory.id ? { ...entry, students: sessionStudents } : entry);
+    if (JSON.stringify(nextHistory) !== JSON.stringify(quizHistory)) setQuizHistory(nextHistory);
+  }, [students, activeSession.quizCode]);
 
   // Currently active player session
   const [currentStudentData, setCurrentStudentData] = useState<StudentRegistrationData | null>(() => {

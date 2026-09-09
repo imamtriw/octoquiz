@@ -426,7 +426,7 @@ export const AdminQuestionManager: React.FC<AdminQuestionManagerProps> = ({
               >
                 {quizPackages.map((pkg) => (
                   <option key={pkg.id} value={pkg.id} className="bg-[#0e172a] text-white">
-                    {pkg.title} ({pkg.questions.length} Soal) • Kelas {pkg.targetClass}
+                    {pkg.title} ({pkg.questions.length} Soal)
                   </option>
                 ))}
               </select>

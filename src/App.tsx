@@ -488,6 +488,32 @@ export default function App() {
     setCurrentView('ADMIN_RESULTS');
   };
 
+  useEffect(() => {
+    if (activeSession.mode !== 'ASSIGNMENT' || activeSession.status === 'FINISHED') return;
+
+    const now = Date.now();
+    if (activeSession.scheduledEndAt && now >= activeSession.scheduledEndAt) {
+      handleFinishQuizSession();
+      return;
+    }
+
+    if (activeSession.status === 'LOBBY' && activeSession.scheduledStartAt && now >= activeSession.scheduledStartAt) {
+      const startedSession = { ...activeSession, status: 'IN_PROGRESS' as const, startedAt: activeSession.startedAt || now };
+      setActiveSession(startedSession);
+      broadcastSession(startedSession);
+      return;
+    }
+
+    const nextBoundary = activeSession.status === 'LOBBY'
+      ? activeSession.scheduledStartAt
+      : activeSession.scheduledEndAt;
+    if (!nextBoundary) return;
+    const timerId = window.setTimeout(() => {
+      setActiveSession(current => ({ ...current }));
+    }, Math.max(0, nextBoundary - now) + 50);
+    return () => window.clearTimeout(timerId);
+  }, [activeSession]);
+
   const handleResetSessionToLobby = () => {
     const nextSession: ActiveQuizSession = {
       ...activeSession,

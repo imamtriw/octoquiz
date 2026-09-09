@@ -63,7 +63,7 @@ export const AdminHistory: React.FC<AdminHistoryProps> = ({ history }) => {
       <section className="bg-[#0e172a]/95 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold uppercase tracking-wider"><HistoryIcon className="w-4 h-4" /> Arsip sesi selesai</div>
+            <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold uppercase tracking-wider"><HistoryIcon className="w-4 h-4" /> Arsip sesi kuis</div>
             <h1 className="text-2xl sm:text-3xl font-black text-white font-display mt-2">History Kuis & Rekap Detail</h1>
             <p className="text-sm text-slate-400 mt-1">Buka kembali peringkat, performa tim, dan jawaban peserta dari kuis yang telah dimainkan.</p>
           </div>
@@ -79,7 +79,7 @@ export const AdminHistory: React.FC<AdminHistoryProps> = ({ history }) => {
             {history.map(entry => (
               <button key={entry.id} onClick={() => setSelectedId(entry.id)} className={`text-left p-4 rounded-2xl border transition-all ${selected?.id === entry.id ? 'bg-emerald-500/15 border-emerald-400/60' : 'bg-[#0e172a]/90 border-white/10 hover:border-cyan-400/40'}`}>
                 <div className="flex items-start justify-between gap-3"><div><div className="text-white font-black text-sm">{entry.session.title}</div><div className="text-xs text-cyan-300 font-mono mt-1">{entry.session.quizCode}</div></div><span className="text-[10px] text-slate-400 whitespace-nowrap">{formatDate(entry.playedAt)}</span></div>
-                <div className="text-xs text-slate-400 mt-3">{entry.students.length} peserta • {entry.questions.length} soal</div>
+                <div className="text-xs text-slate-400 mt-3">{entry.students.length} peserta • {entry.questions.length} soal • {entry.session.status === 'FINISHED' ? 'Selesai' : 'Belum dimulai'}</div>
               </button>
             ))}
           </section>

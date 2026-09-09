@@ -437,14 +437,20 @@ export default function App() {
       status: 'FINISHED',
       finishedAt: Date.now(),
     };
-    const historyEntry: QuizHistoryEntry = {
-      id: `${activeSession.quizCode}-${Date.now()}`,
-      session: nextSession,
-      questions: currentQuestions,
-      students: students.filter(student => student.quizCode === activeSession.quizCode),
-      playedAt: Date.now(),
-    };
-    const nextHistory = [historyEntry, ...quizHistory];
+    const finishedStudents = students.filter(student => student.quizCode === activeSession.quizCode);
+    const existingHistory = quizHistory.find(entry => entry.session.quizCode === activeSession.quizCode && entry.session.status !== 'FINISHED');
+    const historyEntry: QuizHistoryEntry = existingHistory
+      ? { ...existingHistory, session: nextSession, questions: currentQuestions, students: finishedStudents, playedAt: existingHistory.playedAt }
+      : {
+          id: `${activeSession.quizCode}-${Date.now()}`,
+          session: nextSession,
+          questions: currentQuestions,
+          students: finishedStudents,
+          playedAt: Date.now(),
+        };
+    const nextHistory = existingHistory
+      ? quizHistory.map(entry => entry.id === existingHistory.id ? historyEntry : entry)
+      : [historyEntry, ...quizHistory];
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSION, JSON.stringify(nextSession));
       localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
@@ -486,6 +492,29 @@ export default function App() {
       startedAt: undefined,
       customTeams: pkg.customTeams,
     };
+    const historyEntry: QuizHistoryEntry = {
+      id: `${newCode}-${Date.now()}`,
+      session: nextSession,
+      questions: pkg.questions,
+      students: [],
+      playedAt: Date.now(),
+    };
+    const nextHistory = [historyEntry, ...quizHistory];
+    try {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSION, JSON.stringify(nextSession));
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(nextHistory));
+    } catch {
+      // ignore local persistence errors
+    }
+    saveCloudQuizState({
+      quizPackages,
+      activeSession: nextSession,
+      students,
+      quizHistory: nextHistory,
+    }).catch((error) => {
+      console.warn('Gagal menyimpan sesi baru ke Cloud Firestore.', error);
+    });
+    setQuizHistory(nextHistory);
     setActiveSession(nextSession);
     broadcastSession(nextSession);
     setCurrentView('ADMIN_DISPLAY');

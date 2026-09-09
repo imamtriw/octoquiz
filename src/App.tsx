@@ -30,7 +30,7 @@ import { GoogleUserProfile } from './utils/googleAuth';
 import { sound } from './utils/audio';
 import { downloadSingleFileHTML } from './utils/singleHtmlGenerator';
 import { readJoinSessionParam } from './utils/joinSession';
-import { loadCloudQuizState, saveCloudQuizState } from './utils/cloudStorage';
+import { loadCloudQuizState, saveCloudQuizState, saveStudentToCloud } from './utils/cloudStorage';
 
 const STORAGE_KEYS = {
   PACKAGES: 'octoquiz_packages_v1',
@@ -194,7 +194,7 @@ export default function App() {
   useEffect(() => {
     if (!cloudReady) return;
     const timeoutId = window.setTimeout(() => {
-      saveCloudQuizState({ quizPackages, activeSession, students, quizHistory }).catch((error) => {
+      saveCloudQuizState({ quizPackages, activeSession, quizHistory }).catch((error) => {
         console.warn('Gagal menyimpan data ke Cloud Firestore.', error);
       });
     }, 500);
@@ -324,6 +324,11 @@ export default function App() {
     const updatedStudents = [studentRecord, ...students];
     setStudents(updatedStudents);
     broadcastStudents(updatedStudents);
+    if (cloudReady) {
+      saveStudentToCloud(activeSession.quizCode, studentRecord).catch((error) => {
+        console.warn('Gagal menyimpan peserta ke Cloud Firestore.', error);
+      });
+    }
 
     setCurrentStudentData(data);
     setCurrentView('STUDENT_QUIZ');
@@ -393,6 +398,11 @@ export default function App() {
 
     const finalList = found ? updatedStudents : [completedRecord, ...students];
     setStudents(finalList);
+    if (cloudReady) {
+      saveStudentToCloud(currentStudentData.quizCode, completedRecord).catch((error) => {
+        console.warn('Gagal menyimpan hasil peserta ke Cloud Firestore.', error);
+      });
+    }
     setCompletedStudentResult(completedRecord);
     broadcastStudents(finalList);
     setCurrentView('STUDENT_SUMMARY');
@@ -415,6 +425,12 @@ export default function App() {
         }
         return st;
       });
+      const updatedStudent = updated.find(st => st.namaLengkap === currentStudentData.namaLengkap && st.kelas === currentStudentData.kelas);
+      if (cloudReady && updatedStudent) {
+        saveStudentToCloud(currentStudentData.quizCode, updatedStudent).catch((error) => {
+          console.warn('Gagal menyimpan skor live ke Cloud Firestore.', error);
+        });
+      }
       broadcastStudents(updated);
       return updated;
     });
@@ -555,6 +571,11 @@ export default function App() {
     const updated = [newSimulatedStudent, ...students];
     setStudents(updated);
     broadcastStudents(updated);
+    if (cloudReady) {
+      saveStudentToCloud(activeSession.quizCode, newSimulatedStudent).catch((error) => {
+        console.warn('Gagal menyimpan peserta simulasi ke Cloud Firestore.', error);
+      });
+    }
   };
 
   // Save or update Quiz Package
